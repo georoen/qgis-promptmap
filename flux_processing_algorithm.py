@@ -243,6 +243,46 @@ and downloads the results with proper world files for georeferencing.
             if result["status"] == "Ready":
                 tile_files.append(output_path)
                 feedback.pushInfo(f"✓ Tile erfolgreich stylisiert: {filename}")
+                
+                # ✅ AUTOMATISCHES LADEN ALS RASTER-LAYER
+                try:
+                    layer_name = f"FLUX Stylized - {raster_layer.name()}"
+                    raster_layer_result = QgsRasterLayer(output_path, layer_name, "gdal")
+                    
+                    if raster_layer_result.isValid():
+                        # CRS vom Canvas übernehmen
+                        target_crs = canvas.mapSettings().destinationCrs()
+                        raster_layer_result.setCrs(target_crs)
+                        
+                        # Layer ins Projekt laden
+                        from qgis.core import QgsProject, QgsLayerTreeGroup
+                        project = QgsProject.instance()
+                        root = project.layerTreeRoot()
+                        
+                        # FLUX-Gruppe erstellen falls nicht existiert
+                        flux_group = root.findGroup("FLUX AI Results")
+                        if not flux_group:
+                            flux_group = root.insertGroup(0, "FLUX AI Results")
+                        
+                        # Layer zur Gruppe hinzufügen
+                        project.addMapLayer(raster_layer_result, False)  # False = nicht zur Root
+                        flux_group.addLayer(raster_layer_result)
+                        
+                        feedback.pushInfo(f"✅ Raster-Layer geladen: {layer_name}")
+                        feedback.pushInfo(f"📍 CRS: {target_crs.authid()}")
+                        
+                        # Canvas auf den Layer zoomen (optional)
+                        canvas.setExtent(square_extent)
+                        canvas.refresh()
+                        feedback.pushInfo("🗺️ Canvas auf stylisierte Karte zentriert")
+                        
+                    else:
+                        feedback.pushWarning(f"⚠️ Raster-Layer ungültig: {output_path}")
+                        
+                except Exception as e:
+                    feedback.pushWarning(f"⚠️ Automatisches Laden fehlgeschlagen: {e}")
+                    feedback.pushInfo(f"💡 Manuell laden: {output_path}")
+                
             elif result["status"] == "Failed":
                 feedback.reportError(f"✗ Tile Verarbeitung fehlgeschlagen: {result.get('reason', 'Unbekannt')}")
             elif result["status"] == "Timeout":
@@ -253,12 +293,23 @@ and downloads the results with proper world files for georeferencing.
                 try:
                     vrt_path = os.path.join(output_dir, "flux_stylized_mosaic.vrt")
                     flux.build_vrt(vrt_path, tile_files)
-                    feedback.pushInfo(f"✓ VRT Mosaik erstellt: flux_stylized_mosaic.vrt")
+                    
+                    # VRT auch automatisch laden
+                    vrt_layer = QgsRasterLayer(vrt_path, "FLUX Ultra VRT Mosaic", "gdal")
+                    if vrt_layer.isValid():
+                        project = QgsProject.instance()
+                        flux_group = project.layerTreeRoot().findGroup("FLUX AI Results")
+                        if flux_group:
+                            project.addMapLayer(vrt_layer, False)
+                            flux_group.addLayer(vrt_layer)
+                    
+                    feedback.pushInfo(f"✓ VRT Mosaik erstellt und geladen: flux_stylized_mosaic.vrt")
                 except RuntimeError as e:
                     feedback.pushWarning(f"VRT Erstellung übersprungen: {e}")
 
-            feedback.pushInfo(f"Verarbeitung abgeschlossen. {len(tile_files)} Tiles erstellt.")
-            feedback.pushInfo(f"Log-Datei: {log_path}")
+            feedback.pushInfo(f"🎉 Verarbeitung abgeschlossen. {len(tile_files)} Tiles erstellt und geladen.")
+            feedback.pushInfo(f"📂 Log-Datei: {log_path}")
+            feedback.pushInfo(f"📁 Output: {output_dir}")
             
             return {"OUTPUT_DIR": output_dir}
 
