@@ -38,6 +38,7 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
     IMAGE_FORMAT = "IMAGE_FORMAT"
     SEED = "SEED"
     CREATE_VRT = "CREATE_VRT"
+    PRESERVE_CANVAS_ASPECT = "PRESERVE_CANVAS_ASPECT"
 
     @property
     def api_config(self) -> ApiConfig:
@@ -84,6 +85,14 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
                 options=["512×512", "1024×1024"],
                 defaultValue=1,  # Default to 1024 for better quality
                 optional=False
+            )
+        )
+
+        self.addParameter(
+            QgsProcessingParameterBoolean(
+                self.PRESERVE_CANVAS_ASPECT,
+                "Use Canvas Aspect Ratio",
+                defaultValue=False
             )
         )
 
@@ -138,12 +147,12 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
         format_idx = self.parameterAsEnum(parameters, self.IMAGE_FORMAT, context)
         seed = self.parameterAsInt(parameters, self.SEED, context) if parameters.get(self.SEED) is not None else None
         create_vrt = self.parameterAsBoolean(parameters, self.CREATE_VRT, context)
+        preserve_aspect = self.parameterAsBoolean(parameters, self.PRESERVE_CANVAS_ASPECT, context)
 
         N = 512 if tile_size_idx == 0 else 1024
         image_format = "PNG" if format_idx == 0 else "JPEG"
 
-        feedback.pushInfo(f"🎨 Starting AI Processing...")
-        feedback.pushInfo(f"Tile Size: {N}×{N}, Format: {image_format}")
+        feedback.pushInfo("🎨 Starting AI Processing...")
         feedback.pushInfo(f"Output Directory: {output_dir}")
 
         # Get canvas extent and calculate a square processing area
@@ -153,12 +162,29 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
         feedback.pushInfo(f"Processing current canvas view: {extent.toString()} in {crs.authid()}")
 
         w, h = extent.width(), extent.height()
-        cx, cy = extent.center().x(), extent.center().y()
-        half_size = max(w, h) / 2
-        square_extent = QgsRectangle(cx - half_size, cy - half_size, cx + half_size, cy + half_size)
-        
-        extent_tuple = (square_extent.xMinimum(), square_extent.yMinimum(), 
-                       square_extent.xMaximum(), square_extent.yMaximum())
+        canvas_size = canvas.mapSettings().outputSize()
+        canvas_width_px = max(canvas_size.width(), 1)
+        canvas_height_px = max(canvas_size.height(), 1)
+
+        if preserve_aspect:
+            render_extent = extent
+            scale = N / max(canvas_width_px, canvas_height_px)
+            tile_width = max(1, int(round(canvas_width_px * scale)))
+            tile_height = max(1, int(round(canvas_height_px * scale)))
+        else:
+            cx, cy = extent.center().x(), extent.center().y()
+            half_size = max(w, h) / 2
+            render_extent = QgsRectangle(cx - half_size, cy - half_size, cx + half_size, cy + half_size)
+            tile_width = tile_height = N
+
+        extent_tuple = (
+            render_extent.xMinimum(), render_extent.yMinimum(),
+            render_extent.xMaximum(), render_extent.yMaximum()
+        )
+
+        feedback.pushInfo(f"Tile Size: {tile_width}×{tile_height}, Format: {image_format}")
+        if preserve_aspect:
+            feedback.pushInfo("Canvas aspect ratio preserved (experimental mode)")
 
         # --- PROCESS Phase (delegated to subclass) ---
 
@@ -176,7 +202,7 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
         result = remote_engine.process_tile(
             row=0, col=0,
             extent=extent_tuple,
-            N=N,
+            size=(tile_width, tile_height),
             prompt=payload.pop("prompt"),  # Remove prompt so it's not duplicated
             out_path=output_path,
             seed=seed,
@@ -189,7 +215,7 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
 
         if result["status"] == "Ready":
             feedback.pushInfo(f"✓ Tile successfully processed: {os.path.basename(output_path)}")
-            self.load_result_into_qgis(result["output_path"], square_extent, crs, feedback)
+            self.load_result_into_qgis(result["output_path"], render_extent, crs, feedback)
         else:
             feedback.reportError(f"Processing failed: {result.get('reason', 'Unknown error')}", fatalError=True)
             return {}

@@ -94,7 +94,7 @@ class RemoteAiEngine:
         row: int,
         col: int,
         extent: Tuple[float, float, float, float],
-        N: int,
+        size: Tuple[int, int],
         prompt: str,
         out_path: str,
         api_config: ApiConfig,
@@ -106,17 +106,23 @@ class RemoteAiEngine:
         Processes a single map tile using a remote AI service.
         """
         start_time = time.time()
+        tile_width, tile_height = size
         tile_info = {
-            "row": row, "col": col, "extent": extent, "N": N,
+            "row": row,
+            "col": col,
+            "extent": extent,
+            "width": tile_width,
+            "height": tile_height,
             "prompt_hash": self._hash_prompt(prompt),
-            "seed": seed, "start_time": start_time
+            "seed": seed,
+            "start_time": start_time
         }
         
-        self.logger.info(f"Processing Tile {row},{col} - Size {N}x{N}")
+        self.logger.info(f"Processing Tile {row},{col} - Size {tile_width}x{tile_height}")
 
         try:
             # Step 1: Render the actual map from the QGIS canvas
-            input_png_path = self._render_map_tile(extent, N, out_path)
+            input_png_path = self._render_map_tile(extent, tile_width, tile_height, out_path)
             
             # Step 2: Send the request to the AI API
             api_result = self._send_api_request(
@@ -141,11 +147,11 @@ class RemoteAiEngine:
 
             # Step 4: Download the result
             self._download_stylized_image(
-                polling_result["delivery_url"], out_path, N, image_format
+                polling_result["delivery_url"], out_path, tile_width, tile_height, image_format
             )
-            
+
             # Step 5: Write the world file for georeferencing
-            self._write_worldfile(out_path, extent, N, image_format)
+            self._write_worldfile(out_path, extent, tile_width, tile_height, image_format)
             
             # Success
             tile_info.update({
@@ -188,7 +194,7 @@ class RemoteAiEngine:
     # INTERNAL WORKFLOW METHODS
     # =====================================================
     
-    def _render_map_tile(self, extent_tuple: Tuple[float, float, float, float], N: int, base_path: str) -> str:
+    def _render_map_tile(self, extent_tuple: Tuple[float, float, float, float], width: int, height: int, base_path: str) -> str:
         """Renders the QGIS map canvas to a PNG file for the AI service."""
         output_path = base_path.replace('.png', '_input.png').replace('.jpeg', '_input.png')
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -209,7 +215,7 @@ class RemoteAiEngine:
             settings = QgsMapSettings()
             render_extent = QgsRectangle(*extent_tuple)
             settings.setExtent(render_extent)
-            settings.setOutputSize(QSize(N, N))
+            settings.setOutputSize(QSize(width, height))
             
             layers = canvas.layers()
             if not layers:
@@ -232,18 +238,18 @@ class RemoteAiEngine:
         except Exception as e:
             self.logger.error(f"QGIS map rendering failed: {e}. Falling back to demo tile.")
             try:
-                return self._create_demo_tile_fallback(N, output_path)
+                return self._create_demo_tile_fallback(width, height, output_path)
             except Exception as fe:
                 self.logger.error(f"Demo tile fallback also failed: {fe}")
                 raise RuntimeError(f"Map rendering and fallback failed. Original error: {e}")
 
-    def _create_demo_tile_fallback(self, N: int, output_path: str) -> str:
+    def _create_demo_tile_fallback(self, width: int, height: int, output_path: str) -> str:
         """Creates a placeholder map tile if QGIS rendering fails."""
         try:
             from PIL import Image, ImageDraw
-            img = Image.new('RGBA', (N, N), (100, 150, 200, 255))
+            img = Image.new('RGBA', (width, height), (100, 150, 200, 255))
             draw = ImageDraw.Draw(img)
-            draw.text((N//2 - 50, N//2), "DEMO MAP", fill="white")
+            draw.text((width // 2 - 50, height // 2), "DEMO MAP", fill="white")
             img.save(output_path, 'PNG')
             return output_path
         except ImportError:
@@ -332,11 +338,11 @@ class RemoteAiEngine:
 
         raise TimeoutError(f"Polling timed out after {timeout_s} seconds.")
 
-    def _download_stylized_image(self, delivery_url: str, out_path: str, N: int, image_format: str):
+    def _download_stylized_image(self, delivery_url: str, out_path: str, width: int, height: int, image_format: str):
         """Downloads the final image from the delivery URL."""
         if os.getenv('FLUX_DEMO_MODE', 'false').lower() == 'true':
             self.logger.info("DEMO MODE: Creating demo stylized image.")
-            self._create_demo_stylized_image(out_path, N, image_format)
+            self._create_demo_stylized_image(out_path, width, height, image_format)
             return
 
         response = self.session.get(delivery_url, timeout=60)
@@ -346,18 +352,19 @@ class RemoteAiEngine:
             f.write(response.content)
         
         self.logger.info(f"Image successfully downloaded to {out_path}")
-        self._validate_and_resize_if_needed(out_path, N, image_format)
+        self._validate_and_resize_if_needed(out_path, width, height, image_format)
 
-    def _create_demo_stylized_image(self, out_path: str, N: int, image_format: str):
+    def _create_demo_stylized_image(self, out_path: str, width: int, height: int, image_format: str):
         """Creates a placeholder stylized image for demo mode."""
         try:
             from PIL import Image, ImageDraw, ImageFilter
             import random
-            img = Image.new('RGB', (N, N), "white")
+            img = Image.new('RGB', (width, height), "white")
             draw = ImageDraw.Draw(img)
             for _ in range(10):
-                x1, y1 = random.randint(0, N), random.randint(0, N)
-                x2, y2 = x1 + random.randint(-N//2, N//2), y1 + random.randint(-N//2, N//2)
+                x1, y1 = random.randint(0, max(width, 1)), random.randint(0, max(height, 1))
+                x2 = x1 + random.randint(-max(width // 2, 1), max(width // 2, 1))
+                y2 = y1 + random.randint(-max(height // 2, 1), max(height // 2, 1))
                 color = (random.randint(50, 200), random.randint(50, 200), random.randint(50, 200))
                 draw.ellipse([x1, y1, x2, y2], fill=color)
             img = img.filter(ImageFilter.GaussianBlur(radius=2))
@@ -367,25 +374,27 @@ class RemoteAiEngine:
             with open(out_path, 'wb') as f:
                 f.write(b'')
 
-    def _validate_and_resize_if_needed(self, image_path: str, expected_size: int, image_format: str):
+    def _validate_and_resize_if_needed(self, image_path: str, expected_width: int, expected_height: int, image_format: str):
         """Ensures the downloaded image has the correct dimensions."""
         try:
             from PIL import Image
             with Image.open(image_path) as img:
-                if img.size != (expected_size, expected_size):
-                    self.logger.warning(f"Image size mismatch: {img.size} vs {expected_size}x{expected_size}. Resizing...")
-                    resized = img.resize((expected_size, expected_size), Image.LANCZOS)
+                if img.size != (expected_width, expected_height):
+                    self.logger.warning(
+                        f"Image size mismatch: {img.size} vs {expected_width}x{expected_height}. Resizing..."
+                    )
+                    resized = img.resize((expected_width, expected_height), Image.LANCZOS)
                     resized.save(image_path, 'JPEG' if image_format.upper() == 'JPEG' else 'PNG')
         except ImportError:
             self.logger.warning("PIL not available. Cannot validate or resize image dimensions.")
         except Exception as e:
             self.logger.error(f"Failed during image validation: {e}")
 
-    def _write_worldfile(self, image_path: str, extent: Tuple[float, float, float, float], N: int, image_format: str):
+    def _write_worldfile(self, image_path: str, extent: Tuple[float, float, float, float], width: int, height: int, image_format: str):
         """Writes a georeferencing world file for the given image."""
         xmin, ymin, xmax, ymax = extent
-        A = (xmax - xmin) / N      # X pixel size
-        E = -((ymax - ymin) / N)   # Y pixel size (negative)
+        A = (xmax - xmin) / width      # X pixel size
+        E = -((ymax - ymin) / height)   # Y pixel size (negative)
         C = xmin + A / 2           # X coordinate of upper-left pixel center
         F = ymax + E / 2           # Y coordinate of upper-left pixel center
         
