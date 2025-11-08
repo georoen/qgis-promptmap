@@ -54,17 +54,13 @@ class FluxStylizeTiles:
         """
         if not api_key or len(api_key.strip()) < 10:
             raise ValueError("FLUX API Key erforderlich. Hol dir einen auf https://api.bfl.ai")
-        
-        # Demo-Modus nur bei expliziter Anfrage
-        if api_key.lower() == 'demo':
-            os.environ['FLUX_DEMO_MODE'] = 'true'
             
         self.api_key = api_key
         self.endpoint = endpoint.rstrip('/')
         self.log_path = log_path
         self.tiles_processed = []
         
-        # Setup logging
+        # ✅ LOGGER ZUERST SETUP (bevor wir loggen!)
         self.logger = logging.getLogger(__name__)
         if not self.logger.handlers:
             handler = logging.StreamHandler()
@@ -73,6 +69,15 @@ class FluxStylizeTiles:
             self.logger.addHandler(handler)
             self.logger.setLevel(logging.INFO)
         
+        # ✅ DEMO-MODUS NACH LOGGER-SETUP
+        # Demo-Modus nur bei expliziter 'demo' Eingabe
+        if api_key.lower() == 'demo':
+            os.environ['FLUX_DEMO_MODE'] = 'true'
+            self.logger.info("🎯 DEMO-MODUS explizit aktiviert")
+        else:
+            # ✅ WICHTIG: Demo-Modus deaktivieren für echte API-Keys!
+            os.environ['FLUX_DEMO_MODE'] = 'false'
+            self.logger.info("🚀 ECHTER API-MODUS aktiviert")
         # Setup requests session with retries
         if requests:
             self.session = requests.Session()
@@ -336,11 +341,11 @@ class FluxStylizeTiles:
         return output_path
     
     def _request_flux_stylization(
-        self, input_path: str, prompt: str, seed: Optional[int], 
+        self, input_path: str, prompt: str, seed: Optional[int],
         output_format: str, extra_params: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Sendet Request an FLUX 1.1 [pro] Ultra API mit Image-to-Image Support.
+        Sendet Request an FLUX API - unterstützt sowohl Ultra als auch Kontext.
         
         Returns:
             {"success": bool, "polling_url": str, "error": str}
@@ -350,16 +355,33 @@ class FluxStylizeTiles:
             with open(input_path, 'rb') as f:
                 image_data = base64.b64encode(f.read()).decode('ascii')
             
-            # Request payload für FLUX 1.1 [pro] Ultra
-            payload = {
-                "prompt": prompt,
-                "image_prompt": image_data,                              # ✅ Korrekt: image_prompt
-                "image_prompt_strength": extra_params.get("image_prompt_strength", 0.8),  # Starker Karten-Einfluss
-                "aspect_ratio": "1:1",                                   # Quadratische Kacheln
-                "output_format": output_format.lower(),
-                "safety_tolerance": extra_params.get("safety_tolerance", 2),
-                "raw": extra_params.get("raw", False)                    # Raw mode für natürlicheren Look
-            }
+            # ✅ API WAHL: Kontext [pro] vs Ultra
+            use_kontext = extra_params.get("use_kontext_api", False)
+            
+            if use_kontext:
+                # FLUX.1 Kontext [pro] - Einfaches Image Editing
+                endpoint = "/v1/flux-kontext-pro"
+                payload = {
+                    "prompt": prompt,
+                    "input_image": image_data,                       # ✅ Kontext: input_image
+                    "output_format": output_format.lower(),
+                    "safety_tolerance": extra_params.get("safety_tolerance", 2),
+                    "aspect_ratio": "1:1"                           # Quadratische Kacheln
+                }
+                self.logger.info(f"📝 Using FLUX.1 Kontext [pro] for image editing")
+            else:
+                # FLUX 1.1 [pro] Ultra - Advanced Image-to-Image
+                endpoint = "/v1/flux-pro-1.1-ultra"
+                payload = {
+                    "prompt": prompt,
+                    "image_prompt": image_data,                      # ✅ Ultra: image_prompt
+                    "image_prompt_strength": extra_params.get("image_prompt_strength", 0.8),
+                    "aspect_ratio": "1:1",                           # Quadratische Kacheln
+                    "output_format": output_format.lower(),
+                    "safety_tolerance": extra_params.get("safety_tolerance", 2),
+                    "raw": extra_params.get("raw", False)
+                }
+                self.logger.info(f"🚀 Using FLUX 1.1 [pro] Ultra for advanced stylization")
             
             if seed is not None:
                 payload["seed"] = seed
@@ -370,23 +392,47 @@ class FluxStylizeTiles:
                 "Content-Type": "application/json"
             }
             
-            # Für Demo: simuliere API-Call
-            if os.getenv('FLUX_DEMO_MODE', 'true').lower() == 'true':
+            # ✅ CLEAR DEBUG: Demo vs. Echter API-Call
+            demo_mode = os.getenv('FLUX_DEMO_MODE', 'false').lower() == 'true'
+            self.logger.info(f"🔄 API-Modus: {'DEMO' if demo_mode else 'ECHT'} | Endpoint: {self.endpoint}{endpoint}")
+            self.logger.info(f"🔑 API-Key: {self.api_key[:8]}... (Länge: {len(self.api_key)})")
+            
+            if demo_mode:
+                self.logger.info("⚠️ DEMO-MODUS AKTIV - Kein echter API-Call!")
                 return self._simulate_flux_request(payload)
             
-            # Echter API-Call an korrekte FLUX 1.1 [pro] Ultra API
+            # ✅ ECHTER API-CALL mit detailliertem Logging
+            full_url = f"{self.endpoint}{endpoint}"
+            self.logger.info(f"📡 Sende Request an: {full_url}")
+            self.logger.info(f"📝 Payload Keys: {list(payload.keys())}")
+            self.logger.info(f"🖼️ Image Size: {len(payload.get('input_image', payload.get('image_prompt', '')))//1000}KB base64")
+            
             response = self.session.post(
-                f"{self.endpoint}/v1/flux-pro-1.1-ultra",               # ✅ Korrekt: flux-pro-1.1-ultra
+                full_url,
                 json=payload,
                 headers=headers,
                 timeout=60
             )
             
+            self.logger.info(f"📥 Response Status: {response.status_code}")
+            
             if response.status_code == 429:
+                self.logger.error("🚫 Rate limit exceeded!")
                 return {"success": False, "error": "Rate limit exceeded - zu viele Requests"}
+            
+            if response.status_code == 401:
+                self.logger.error("🚫 Authentication failed - API Key ungültig!")
+                return {"success": False, "error": "API Key ungültig"}
+                
+            if response.status_code == 400:
+                self.logger.error(f"🚫 Bad Request: {response.text}")
+                return {"success": False, "error": f"Bad Request: {response.text}"}
             
             response.raise_for_status()
             result = response.json()
+            
+            self.logger.info(f"✅ API Request erfolgreich! ID: {result.get('id', 'N/A')}")
+            self.logger.info(f"🔄 Polling URL: {result.get('polling_url', 'N/A')}")
             
             return {
                 "success": True,
@@ -415,18 +461,28 @@ class FluxStylizeTiles:
         """
         start_time = time.time()
         poll_interval = 0.5
+        poll_count = 0
         
         headers = {
             "accept": "application/json",
             "x-key": self.api_key
         }
         
+        demo_mode = os.getenv('FLUX_DEMO_MODE', 'false').lower() == 'true'
+        self.logger.info(f"🔄 Starte Polling: {'DEMO' if demo_mode else 'ECHT'}")
+        self.logger.info(f"🕐 Timeout: {timeout_s}s | Interval: {poll_interval}s")
+        
         while time.time() - start_time < timeout_s:
+            poll_count += 1
+            elapsed = time.time() - start_time
+            
             try:
                 # Für Demo-Modus
-                if os.getenv('FLUX_DEMO_MODE', 'true').lower() == 'true':
+                if demo_mode:
+                    self.logger.info(f"📊 Demo-Polling #{poll_count} ({elapsed:.1f}s)")
                     # Simuliere kurze Verarbeitung
-                    if time.time() - start_time > 2:  # Nach 2 Sekunden "fertig"
+                    if elapsed > 2:  # Nach 2 Sekunden "fertig"
+                        self.logger.info("✅ Demo-Polling abgeschlossen!")
                         return {
                             "status": "Ready",
                             "delivery_url": "https://delivery-eu1.bfl.ai/demo/sample.png?signature=demo"
@@ -435,31 +491,49 @@ class FluxStylizeTiles:
                         time.sleep(poll_interval)
                         continue
                 
-                # Echter Polling
-                response = self.session.get(polling_url, headers=headers, timeout=30)
-                response.raise_for_status()
-                result = response.json()
+                # ✅ ECHTER POLLING mit detailliertem Logging
+                self.logger.info(f"📊 Polling #{poll_count} ({elapsed:.1f}s) → {polling_url}")
                 
-                status = result.get("status", "")
+                response = self.session.get(polling_url, headers=headers, timeout=30)
+                self.logger.info(f"📥 Poll-Response: {response.status_code}")
+                
+                if response.status_code != 200:
+                    self.logger.warning(f"⚠️ Poll-Status {response.status_code}: {response.text[:200]}")
+                    time.sleep(poll_interval)
+                    continue
+                
+                result = response.json()
+                status = result.get("status", "UNKNOWN")
+                
+                self.logger.info(f"📋 API Status: '{status}' | Keys: {list(result.keys())}")
                 
                 if status == "Ready":
+                    delivery_url = result["result"]["sample"]
+                    self.logger.info(f"✅ FLUX fertig! Delivery: {delivery_url[:60]}...")
                     return {
-                        "status": "Ready", 
-                        "delivery_url": result["result"]["sample"]
+                        "status": "Ready",
+                        "delivery_url": delivery_url
                     }
                 elif status in ["Error", "Failed"]:
+                    error_msg = result.get("message", result.get("error", "Unknown API error"))
+                    self.logger.error(f"❌ FLUX Failed: {error_msg}")
                     return {
                         "status": "Failed",
-                        "error": result.get("message", "Unknown API error")
+                        "error": error_msg
                     }
+                elif status in ["Processing", "Pending"]:
+                    self.logger.info(f"⏳ Noch in Verarbeitung... ({status})")
+                else:
+                    self.logger.warning(f"⁉️ Unbekannter Status: {status}")
                 
-                # Noch in Verarbeitung
+                # Weiter warten
                 time.sleep(poll_interval)
                 
             except Exception as e:
-                self.logger.warning(f"Polling Fehler: {e}")
+                self.logger.error(f"❌ Polling Fehler #{poll_count}: {e}")
                 time.sleep(poll_interval)
         
+        self.logger.error(f"⏰ Polling Timeout nach {timeout_s}s ({poll_count} Versuche)")
         return {"status": "Timeout", "error": f"Polling timeout nach {timeout_s}s"}
     
     def _download_stylized_image(
