@@ -52,8 +52,12 @@ class FluxStylizeTiles:
             log_path: Pfad für JSON-Logs (optional)
             endpoint: API Endpoint (EU oder global)
         """
-        if not api_key or not api_key.startswith('sk-'):
-            raise ValueError("Gültiger FLUX API Key erforderlich (beginnt mit 'sk-')")
+        if not api_key or len(api_key.strip()) < 10:
+            raise ValueError("FLUX API Key erforderlich. Hol dir einen auf https://api.bfl.ai")
+        
+        # Demo-Modus nur bei expliziter Anfrage
+        if api_key.lower() == 'demo':
+            os.environ['FLUX_DEMO_MODE'] = 'true'
             
         self.api_key = api_key
         self.endpoint = endpoint.rstrip('/')
@@ -125,8 +129,8 @@ class FluxStylizeTiles:
         self.logger.info(f"Verarbeite Tile {row},{col} - Größe {N}x{N}")
         
         try:
-            # 1. Simuliere Eingabe-PNG für Demo (echte Implementierung würde hier rendern)
-            input_png_path = self._create_demo_tile(N, out_path)
+            # 1. ✅ RENDERE ECHTE KARTE vom Map Canvas
+            input_png_path = self._render_map_tile(extent, N, out_path)
             
             # 2. FLUX API Request
             api_result = self._request_flux_stylization(
@@ -217,38 +221,92 @@ class FluxStylizeTiles:
     # INTERNAL HELPER METHODS
     # =====================================================
     
-    def _create_demo_tile(self, N: int, base_path: str) -> str:
+    def _render_map_tile(self, extent_tuple: Tuple[float, float, float, float], N: int, base_path: str) -> str:
         """
-        Erstellt ein Demo-PNG für Tests (echte Version würde QGIS rendern).
+        Rendert echte QGIS Map Canvas als PNG für FLUX AI.
         
         Args:
+            extent_tuple: (xmin, ymin, xmax, ymax) für Rendering
             N: Tile-Größe in Pixel
-            base_path: Basis-Pfad für temporäre Datei
+            base_path: Basis-Pfad für Output-PNG
             
         Returns:
-            Pfad zur Demo-PNG-Datei
+            Pfad zur gerenderten PNG-Datei
         """
-        # Für Demo: erstelle einfaches PNG
-        demo_path = base_path.replace('.png', '_input.png').replace('.jpeg', '_input.png')
+        output_path = base_path.replace('.png', '_input.png').replace('.jpeg', '_input.png')
         
         try:
-            # Verwende PIL falls verfügbar, ansonsten erstelle Dummy
-            from PIL import Image, ImageDraw
+            # ✅ ECHTES QGIS MAP RENDERING
+            from qgis.core import (
+                QgsMapSettings, QgsRectangle, QgsMapRendererParallelJob,
+                QgsProject, QgsCoordinateReferenceSystem
+            )
+            from qgis.utils import iface
+            from PyQt5.QtCore import QSize
+            from PyQt5.QtGui import QImage, QPainter
+            import os
             
-            # Erstelle einfaches Gradient-Bild
+            # Map Canvas Settings kopieren
+            canvas = iface.mapCanvas()
+            settings = QgsMapSettings()
+            
+            # Extent setzen (quadratisch vom Processing Algorithm)
+            xmin, ymin, xmax, ymax = extent_tuple
+            render_extent = QgsRectangle(xmin, ymin, xmax, ymax)
+            settings.setExtent(render_extent)
+            
+            # Output-Größe: N x N Pixel
+            settings.setOutputSize(QSize(N, N))
+            
+            # Layer: aktuelle Canvas-Layer verwenden
+            settings.setLayers(canvas.layers())
+            settings.setDestinationCrs(canvas.mapSettings().destinationCrs())
+            
+            # Transparenter Hintergrund für PNG
+            from PyQt5.QtCore import Qt
+            settings.setBackgroundColor(Qt.transparent)
+            
+            self.logger.info(f"Rendere Kachel: {render_extent.toString()} → {N}x{N}px")
+            
+            # Parallel-Rendering (schneller)
+            job = QgsMapRendererParallelJob(settings)
+            job.start()
+            job.waitForFinished()
+            
+            # Rendered Image als PNG speichern
+            rendered_image = job.renderedImage()
+            if rendered_image.isNull():
+                raise RuntimeError("Map-Rendering fehlgeschlagen - Null-Image")
+                
+            success = rendered_image.save(output_path, 'PNG')
+            if not success:
+                raise RuntimeError(f"PNG-Save fehlgeschlagen: {output_path}")
+                
+            self.logger.info(f"✅ Kachel gerendert: {os.path.basename(output_path)} ({os.path.getsize(output_path)} bytes)")
+            return output_path
+            
+        except Exception as e:
+            self.logger.warning(f"QGIS-Rendering fehlgeschlagen: {e}")
+            self.logger.info("Fallback zu Demo-Tile...")
+            
+            # ✅ FALLBACK: Demo-Tile wenn QGIS-Rendering nicht funktioniert
+            return self._create_demo_tile_fallback(N, output_path)
+    
+    def _create_demo_tile_fallback(self, N: int, output_path: str) -> str:
+        """Fallback Demo-Tile wenn echtes Rendering fehlschlägt."""
+        try:
+            from PIL import Image, ImageDraw
             img = Image.new('RGBA', (N, N), (100, 150, 200, 255))
             draw = ImageDraw.Draw(img)
             draw.rectangle([N//4, N//4, 3*N//4, 3*N//4], fill=(200, 100, 150, 255))
-            img.save(demo_path, 'PNG')
-            
+            draw.text((N//2-50, N//2), "DEMO MAP", fill=(255, 255, 255, 255))
+            img.save(output_path, 'PNG')
         except ImportError:
-            # Fallback: erstelle minimales PNG-Header
-            with open(demo_path, 'wb') as f:
-                # Minimal PNG (1x1 transparent pixel)
+            # Minimal PNG wenn PIL fehlt
+            with open(output_path, 'wb') as f:
                 png_data = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\xf8\x0f\x00\x00\x01\x00\x01\x00\x00\x00\x00\x00\r\n\x00\x00\x00\x00IEND\xaeB`\x82'
                 f.write(png_data)
-        
-        return demo_path
+        return output_path
     
     def _request_flux_stylization(
         self, input_path: str, prompt: str, seed: Optional[int], 

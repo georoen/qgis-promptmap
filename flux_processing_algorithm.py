@@ -14,6 +14,7 @@ from qgis.core import (
     QgsProcessingException,
     QgsRasterLayer,
     QgsCoordinateReferenceSystem,
+    QgsRectangle,
 )
 
 from .flux_stylize_tiles import FluxStylizeTiles
@@ -184,20 +185,38 @@ and downloads the results with proper world files for georeferencing.
         flux = FluxStylizeTiles(api_key=api_key, log_path=log_path)
 
         try:
-            # Get raster properties
-            provider = raster_layer.dataProvider()
-            extent = raster_layer.extent()
-            crs = raster_layer.crs()
+            # ✅ VERWENDE MAP CANVAS statt Layer-Extent!
+            from qgis.utils import iface
+            canvas = iface.mapCanvas()
             
-            feedback.pushInfo(f"Raster Extent: {extent.toString()}")
-            feedback.pushInfo(f"CRS: {crs.authid()}")
+            # Aktueller Canvas-Extent (was der User sieht)
+            extent = canvas.extent()
+            crs = canvas.mapSettings().destinationCrs()
+            
+            feedback.pushInfo(f"Canvas Extent: {extent.toString()}")
+            feedback.pushInfo(f"Canvas CRS: {crs.authid()}")
+            feedback.pushInfo(f"Sichtbare Layer: {len(canvas.layers())}")
 
-            # For demo: process a single tile (could be expanded to grid later)
-            tile_files = []
+            # ✅ QUADRATISCHEN EXTENT BERECHNEN
+            w, h = extent.width(), extent.height()
+            cx, cy = extent.center().x(), extent.center().y()
             
-            # Single tile processing for this version
+            if w > h:
+                # Breiter → erweitere Höhe
+                half_size = w / 2
+                square_extent = QgsRectangle(cx - half_size, cy - half_size, cx + half_size, cy + half_size)
+            else:
+                # Höher → erweitere Breite
+                half_size = h / 2
+                square_extent = QgsRectangle(cx - half_size, cy - half_size, cx + half_size, cy + half_size)
+                
+            feedback.pushInfo(f"Quadratischer Extent: {square_extent.toString()}")
+            
+            # Single tile processing für aktuellen Canvas
+            tile_files = []
             row, col = 0, 0
-            extent_tuple = (extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
+            extent_tuple = (square_extent.xMinimum(), square_extent.yMinimum(),
+                           square_extent.xMaximum(), square_extent.yMaximum())
             
             # Generate filename
             filename = f"flux_tile_{row:03d}_{col:03d}.{image_format.lower()}"
