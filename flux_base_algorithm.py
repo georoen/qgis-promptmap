@@ -37,7 +37,6 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
     OUTPUT_DIR = "OUTPUT_DIR"
     IMAGE_FORMAT = "IMAGE_FORMAT"
     SEED = "SEED"
-    CREATE_VRT = "CREATE_VRT"
     PRESERVE_CANVAS_ASPECT = "PRESERVE_CANVAS_ASPECT"
 
     @property
@@ -124,14 +123,6 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.CREATE_VRT,
-                "Create VRT Mosaic",
-                defaultValue=True
-            )
-        )
-
     def processAlgorithm(self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback):
         """Orchestrates the PREPARE -> PROCESS -> INTEGRATE workflow."""
         
@@ -146,7 +137,6 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
         output_dir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
         format_idx = self.parameterAsEnum(parameters, self.IMAGE_FORMAT, context)
         seed = self.parameterAsInt(parameters, self.SEED, context) if parameters.get(self.SEED) is not None else None
-        create_vrt = self.parameterAsBoolean(parameters, self.CREATE_VRT, context)
         preserve_aspect = self.parameterAsBoolean(parameters, self.PRESERVE_CANVAS_ASPECT, context)
 
         N = 512 if tile_size_idx == 0 else 1024
