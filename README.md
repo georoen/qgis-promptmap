@@ -212,3 +212,46 @@ Teile deine Kreationen, experimentiere mit verschiedenen Prompts, und verwandle 
 ---
 
 *Plugin erstellt für QGIS 3.x mit ❤️ und FLUX AI*
+
+---
+
+## 🔮 Future Development & Refactoring
+
+To support a wider range of AI APIs beyond FLUX (e.g., Mistral, Gemini) and to make the codebase more modular and maintainable, a major refactoring is planned.
+
+### Core Architecture Vision
+
+The plugin will be restructured to clearly separate QGIS-specific logic from the AI processing logic. The core principle is a three-step data flow: `PREPARE` -> `PROCESS` -> `INTEGRATE`.
+
+1.  **`PREPARE`**: Render the current QGIS map canvas into an image tile.
+2.  **`PROCESS`**: Send the image and a prompt to a selected remote AI service.
+3.  **`INTEGRATE`**: Georeference the resulting image and load it back into QGIS.
+
+### Planned Class Structure
+
+```mermaid
+graph TD
+    subgraph "QGIS UI Layer (Agnostic)"
+        A[BaseAiAlgorithm] -- handles PREPARE & INTEGRATE --> B
+    end
+
+    subgraph "AI Engine Layer"
+        B[RemoteAiEngine] -- handles PROCESS --> C{FluxApiHandler}
+        B -- can be extended with --> D{MistralApiHandler}
+        B -- can be extended with --> E{...}
+    end
+
+    subgraph "QGIS Processing Algorithms"
+        F[FluxUltraAlgorithm] -- inherits from --> A
+        G[FluxKontextAlgorithm] -- inherits from --> A
+    end
+
+    style B fill:#ccf,stroke:#333,stroke-width:2px
+```
+
+-   **`BaseAiAlgorithm`**: A new base class for all QGIS Processing algorithms in this plugin. It will contain all the shared logic for handling the QGIS map canvas (`PREPARE`) and loading the results (`INTEGRATE`).
+-   **`RemoteAiEngine`**: This class (formerly `FluxStylizeTiles`) will act as a generic, agnostic engine for remote AI processing. Its sole responsibility is to manage API communication (`PROCESS`). It will take an image and a prompt, and return a processed image.
+-   **API Handlers**: For each specific service (like FLUX Ultra, FLUX Kontext, Mistral), a dedicated handler class or method will be implemented within the `RemoteAiEngine`.
+-   **QGIS Algorithms**: The user-facing algorithms (`FluxUltraAlgorithm`, `FluxKontextAlgorithm`) will become very lightweight, inheriting from `BaseAiAlgorithm` and simply specifying which API configuration to use.
+
+This refactoring will pave the way for easy integration of new AI services while keeping the core logic clean and centralized.

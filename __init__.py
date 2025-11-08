@@ -1,5 +1,5 @@
 from qgis.core import QgsProcessingProvider, QgsApplication
-from .flux_processing_algorithm import FluxStylizeAlgorithm
+from .flux_ultra_algorithm import FluxStylizeAlgorithm
 from .flux_kontext_algorithm import FluxKontextAlgorithm
 
 
