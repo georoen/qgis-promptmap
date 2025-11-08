@@ -13,8 +13,8 @@ Dieses QGIS-Plugin nutzt die FLUX AI-Technologie, um deine Rasterkarten in stili
 **Option A: Direkt kopieren (empfohlen)**
 ```bash
 # Terminal öffnen und ausführen:
-rm -rf ~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/qgis_flux/
-cp -r /Users/jstaab/Desktop/qgis_flux ~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/
+rm -rf /Users/jstaab/Library/Application\ Support/QGIS/QGIS3/profiles/default/python/plugins/qgis_flux/
+cp -r /Users/jstaab/Desktop/qgis_flux /Users/jstaab/Library/Application\ Support/QGIS/QGIS3/profiles/default/python/plugins/
 ```
 
 **Option B: ZIP-Installation**
