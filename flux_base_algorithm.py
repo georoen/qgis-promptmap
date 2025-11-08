@@ -3,7 +3,6 @@ from typing import Dict, Any
 
 from qgis.core import (
     QgsProcessingAlgorithm,
-    QgsProcessingParameterRasterLayer,
     QgsProcessingParameterString,
     QgsProcessingParameterNumber,
     QgsProcessingParameterEnum,
@@ -39,8 +38,7 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
     IMAGE_FORMAT = "IMAGE_FORMAT"
     SEED = "SEED"
     CREATE_VRT = "CREATE_VRT"
-    INPUT_RASTER = "INPUT_RASTER" # Kept for UI consistency, but we use the canvas
-    
+
     @property
     def api_config(self) -> ApiConfig:
         """Subclasses must provide their specific API configuration."""
@@ -67,15 +65,6 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
 
     def initAlgorithm(self, config=None):
         """Initializes the common UI parameters."""
-        # This input is ignored, but required for the user to select a context
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(
-                self.INPUT_RASTER,
-                "Input Layer (provides context, but current canvas view is processed)",
-                optional=False
-            )
-        )
-
         self.addParameter(
             QgsProcessingParameterString(
                 self.API_KEY,
