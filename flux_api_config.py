@@ -30,7 +30,7 @@ class ApiConfig(NamedTuple):
 
 FLUX_ULTRA_CONFIG = ApiConfig(
     id="flux_ultra",
-    display_name="FLUX Ultra Stylize",
+    display_name="FLUX 1.1 [pro] Ultra",
     short_help="Generates an artistic image based on a style prompt using the FLUX 1.1 [pro] Ultra model.",
     endpoint_path="/v1/flux-pro-1.1-ultra",
     image_payload_key="image_prompt",
@@ -45,7 +45,7 @@ FLUX_ULTRA_CONFIG = ApiConfig(
 
 FLUX_KONTEXT_CONFIG = ApiConfig(
     id="flux_kontext",
-    display_name="FLUX Kontext Edit",
+    display_name="FLUX.1 Kontext [pro]",
     short_help="Edits the map image based on an instruction prompt using the FLUX.1 Kontext [pro] model.",
     endpoint_path="/v1/flux-kontext-pro",
     image_payload_key="input_image",

@@ -1,19 +1,19 @@
 [general]
-name=FLUX Stylize Tiles
+name=AI Toolbox
 qgisMinimumVersion=3.20
-description=Stylize raster tiles using FLUX API for AI-powered map visualization
-version=0.1.0
-author=QGIS FLUX Team
-email=team@example.com
+description=Semantic segmentation using FLUX API for AI-powered map visualization
+version=0.2.0
+author=Jeroen Staab
+email=email@jstaab.de
 
 about=Transform raster map tiles with AI-powered stylization using FLUX API. Create artistic, themed, or enhanced visualizations of your geospatial data.
 
-tracker=https://github.com/example/qgis-flux/issues
-repository=https://github.com/example/qgis-flux
+tracker=https://github.com/georoen/qgis-flux/issues
+repository=https://github.com/georoen/qgis-flux
 changelog=Initial release with tile processing and VRT generation
 
 tags=raster,processing,ai,flux,stylization
-homepage=https://github.com/example/qgis-flux
+homepage=https://github.com/georoen/qgis-flux
 category=Raster
 icon=icon.png
 experimental=False

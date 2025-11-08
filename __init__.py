@@ -10,14 +10,14 @@ class FluxProvider(QgsProcessingProvider):
         return "flux"
 
     def name(self):
-        return "FLUX AI Processing"
+        return "AI Toolbox"
 
     def icon(self):
         return QgsApplication.getThemeIcon("/mActionRasterize.svg")
 
     def loadAlgorithms(self):
         self.addAlgorithm(FluxStylizeAlgorithm())
-        self.addAlgorithm(FluxKontextAlgorithm())  # ✅ Zusätzliches Kontext Tool
+        self.addAlgorithm(FluxKontextAlgorithm())
 
 
 def classFactory(iface):
