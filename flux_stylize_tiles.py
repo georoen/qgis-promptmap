@@ -235,19 +235,27 @@ class FluxStylizeTiles:
         """
         output_path = base_path.replace('.png', '_input.png').replace('.jpeg', '_input.png')
         
+        # ✅ SICHERSTELLEN DASS OUTPUT-VERZEICHNIS EXISTIERT
+        import os
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        
+        self.logger.info(f"🎯 Starte Map-Rendering: {extent_tuple} → {output_path}")
+        
         try:
-            # ✅ ECHTES QGIS MAP RENDERING
+            # ✅ ECHTES QGIS MAP RENDERING mit verbesserter Fehlerbehandlung
             from qgis.core import (
                 QgsMapSettings, QgsRectangle, QgsMapRendererParallelJob,
                 QgsProject, QgsCoordinateReferenceSystem
             )
             from qgis.utils import iface
-            from PyQt5.QtCore import QSize
-            from PyQt5.QtGui import QImage, QPainter
-            import os
+            from PyQt5.QtCore import QSize, Qt
+            from PyQt5.QtGui import QImage
             
             # Map Canvas Settings kopieren
             canvas = iface.mapCanvas()
+            if not canvas:
+                raise RuntimeError("Map Canvas nicht verfügbar")
+                
             settings = QgsMapSettings()
             
             # Extent setzen (quadratisch vom Processing Algorithm)
@@ -259,38 +267,57 @@ class FluxStylizeTiles:
             settings.setOutputSize(QSize(N, N))
             
             # Layer: aktuelle Canvas-Layer verwenden
-            settings.setLayers(canvas.layers())
+            layers = canvas.layers()
+            if not layers:
+                raise RuntimeError("Keine sichtbaren Layer im Canvas")
+                
+            settings.setLayers(layers)
             settings.setDestinationCrs(canvas.mapSettings().destinationCrs())
             
             # Transparenter Hintergrund für PNG
-            from PyQt5.QtCore import Qt
             settings.setBackgroundColor(Qt.transparent)
             
-            self.logger.info(f"Rendere Kachel: {render_extent.toString()} → {N}x{N}px")
+            self.logger.info(f"🗺️ Rendering-Setup: {len(layers)} Layer, {render_extent.toString()}")
             
             # Parallel-Rendering (schneller)
             job = QgsMapRendererParallelJob(settings)
             job.start()
             job.waitForFinished()
             
-            # Rendered Image als PNG speichern
+            # Rendered Image validieren und speichern
             rendered_image = job.renderedImage()
             if rendered_image.isNull():
-                raise RuntimeError("Map-Rendering fehlgeschlagen - Null-Image")
+                raise RuntimeError("Map-Rendering returned Null-Image")
                 
+            if rendered_image.width() != N or rendered_image.height() != N:
+                self.logger.warning(f"⚠️ Rendered size mismatch: {rendered_image.width()}x{rendered_image.height()} vs {N}x{N}")
+                
+            # PNG speichern mit Validierung
             success = rendered_image.save(output_path, 'PNG')
             if not success:
-                raise RuntimeError(f"PNG-Save fehlgeschlagen: {output_path}")
+                raise RuntimeError(f"PNG-Save failed: {output_path}")
                 
-            self.logger.info(f"✅ Kachel gerendert: {os.path.basename(output_path)} ({os.path.getsize(output_path)} bytes)")
+            # Datei-Existenz prüfen
+            if not os.path.exists(output_path):
+                raise RuntimeError(f"PNG nicht erstellt: {output_path}")
+                
+            file_size = os.path.getsize(output_path)
+            if file_size < 100:  # Sehr kleine Datei = wahrscheinlich kaputt
+                raise RuntimeError(f"PNG zu klein: {file_size} bytes")
+                
+            self.logger.info(f"✅ Map-Canvas gerendert: {os.path.basename(output_path)} ({file_size} bytes)")
             return output_path
             
         except Exception as e:
-            self.logger.warning(f"QGIS-Rendering fehlgeschlagen: {e}")
-            self.logger.info("Fallback zu Demo-Tile...")
+            self.logger.error(f"❌ QGIS-Rendering fehlgeschlagen: {e}")
+            self.logger.info("🔄 Fallback zu Demo-Tile...")
             
             # ✅ FALLBACK: Demo-Tile wenn QGIS-Rendering nicht funktioniert
-            return self._create_demo_tile_fallback(N, output_path)
+            try:
+                return self._create_demo_tile_fallback(N, output_path)
+            except Exception as fe:
+                self.logger.error(f"❌ Auch Fallback fehlgeschlagen: {fe}")
+                raise RuntimeError(f"Weder Map-Rendering noch Fallback erfolgreich: {e} | {fe}")
     
     def _create_demo_tile_fallback(self, N: int, output_path: str) -> str:
         """Fallback Demo-Tile wenn echtes Rendering fehlschlägt."""
