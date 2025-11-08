@@ -1,5 +1,4 @@
 import os
-from abc import ABC, abstractmethod
 from typing import Dict, Any
 
 from qgis.core import (
@@ -22,7 +21,7 @@ from .remote_ai_engine import RemoteAiEngine
 from .flux_api_config import ApiConfig
 
 
-class BaseAiAlgorithm(QgsProcessingAlgorithm, ABC):
+class BaseAiAlgorithm(QgsProcessingAlgorithm):
     """
     Abstract base class for QGIS Processing algorithms that use a remote AI engine.
 
@@ -43,10 +42,9 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm, ABC):
     INPUT_RASTER = "INPUT_RASTER" # Kept for UI consistency, but we use the canvas
     
     @property
-    @abstractmethod
     def api_config(self) -> ApiConfig:
         """Subclasses must provide their specific API configuration."""
-        pass
+        raise NotImplementedError("Subclasses must define api_config.")
 
     def name(self):
         return self.api_config.id
@@ -243,7 +241,6 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm, ABC):
             feedback.pushWarning(f"Failed to auto-load layer: {e}")
             feedback.pushInfo(f"You can manually load the result from: {image_path}")
 
-    @abstractmethod
     def get_api_specifics(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> (str, Dict[str, Any]):
         """
         Subclasses must implement this method to provide API-specific details.
@@ -253,4 +250,4 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm, ABC):
             - filename (str): The desired output filename for the tile.
             - payload (Dict[str, Any]): The API-specific parameters. Must include a "prompt" key.
         """
-        pass
+        raise NotImplementedError("Subclasses must implement get_api_specifics.")

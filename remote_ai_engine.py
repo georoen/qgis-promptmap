@@ -253,7 +253,7 @@ class RemoteAiEngine:
 
     def _send_api_request(
         self, input_path: str, prompt: str, seed: Optional[int],
-        output_format: str, api_config: ApiConfig, extra_params: Dict[str, Any]
+        image_format: str, api_config: ApiConfig, extra_params: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Builds the payload and sends the initial request to the specified API."""
         with open(input_path, 'rb') as f:
@@ -265,7 +265,7 @@ class RemoteAiEngine:
         # Add dynamic values
         payload['prompt'] = prompt
         payload[api_config.image_payload_key] = image_data
-        payload['output_format'] = output_format.lower()
+        payload['output_format'] = image_format.lower()
         
         # Merge any additional, user-defined parameters
         payload.update(extra_params)
