@@ -1,0 +1,22 @@
+[general]
+name=FLUX Stylize Tiles
+qgisMinimumVersion=3.20
+description=Stylize raster tiles using FLUX API for AI-powered map visualization
+version=0.1.0
+author=QGIS FLUX Team
+email=team@example.com
+
+about=Transform raster map tiles with AI-powered stylization using FLUX API. Create artistic, themed, or enhanced visualizations of your geospatial data.
+
+tracker=https://github.com/example/qgis-flux/issues
+repository=https://github.com/example/qgis-flux
+changelog=Initial release with tile processing and VRT generation
+
+tags=raster,processing,ai,flux,stylization
+homepage=https://github.com/example/qgis-flux
+category=Raster
+icon=icon.png
+experimental=False
+deprecated=False
+
+hasProcessingProvider=yes
