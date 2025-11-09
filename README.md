@@ -260,11 +260,11 @@ graph TD
 | --- | --- | --- | --- |
 | [x] | `prompt` | `prompt` | Text description of the edit or target image (required UI field). |
 | [x] | `input_image` | `image_prompt` | Canvas snapshot automatically attached as base64 guidance. |
-| [ ] | `aspect_ratio` | `aspect_ratio` | Not exposed in the UI; APIs use their defaults (Kontext 1:1, Ultra 16:9). |
+| [x] | `aspect_ratio` | `aspect_ratio` | Hidden parameter derived from the selected tile size (defaults to `1:1`). |
 | [x] | `seed` | `seed` | Optional integer seed collected via the Processing form. |
 | [ ] | `prompt_upsampling` | `prompt_upsampling` | Prompt enhancement flag (not surfaced yet). |
 | [x] | `safety_tolerance` | `safety_tolerance` | Moderation level (0–6). Both Kontext and Ultra expose a Processing parameter now. |
-| [x] | `output_format` | `output_format` | Image format (`jpeg`/`png`) chosen via the Processing parameter. |
+| [x] | `output_format` | `output_format` | Automatically forced to PNG; no UI control is shown. |
 | [x] | — | `raw` | Ultra-only toggle (“Raw Mode”) exposed via a Processing checkbox. |
 | [x] | — | `image_prompt_strength` | Ultra-only float slider (0–1) controlling how strongly the canvas affects the result. |
 | [ ] | `webhook_url` | `webhook_url` | Optional callback URL (not implemented). |

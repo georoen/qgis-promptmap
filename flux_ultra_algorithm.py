@@ -90,9 +90,7 @@ class FluxStylizeAlgorithm(BaseAiAlgorithm):
         raw_mode = self.parameterAsBoolean(parameters, self.RAW_MODE, context)
         img_strength = self.parameterAsDouble(parameters, self.IMAGE_PROMPT_STRENGTH, context)
 
-        format_idx = self.parameterAsEnum(parameters, self.IMAGE_FORMAT, context)
-        image_format = "png" if format_idx == 0 else "jpeg"
-        filename = f"{self.api_config.id}_result.{image_format}"
+        filename = f"{self.api_config.id}_result.png"
 
         payload = {
             "prompt": prompt,

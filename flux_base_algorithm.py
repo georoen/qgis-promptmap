@@ -1,4 +1,5 @@
 import os
+from math import gcd
 from typing import Dict, Any
 
 from qgis.core import (
@@ -34,7 +35,6 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
     API_KEY = "API_KEY"
     TILE_SIZE = "TILE_SIZE"
     OUTPUT_DIR = "OUTPUT_DIR"
-    IMAGE_FORMAT = "IMAGE_FORMAT"
     SEED = "SEED"
 
     TILE_SIZE_CHOICES = [
@@ -103,16 +103,6 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
         )
 
         self.addParameter(
-            QgsProcessingParameterEnum(
-                self.IMAGE_FORMAT,
-                "Output Format",
-                options=["PNG", "JPEG"],
-                defaultValue=0,
-                optional=False
-            )
-        )
-
-        self.addParameter(
             QgsProcessingParameterNumber(
                 self.SEED,
                 "Random Seed (optional)",
@@ -135,11 +125,9 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
         # Get common parameters
         tile_size_idx = self.parameterAsEnum(parameters, self.TILE_SIZE, context)
         output_dir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
-        format_idx = self.parameterAsEnum(parameters, self.IMAGE_FORMAT, context)
         seed = self.parameterAsInt(parameters, self.SEED, context) if parameters.get(self.SEED) is not None else None
         use_canvas_aspect = tile_size_idx == len(self.TILE_SIZE_CHOICES)
-
-        image_format = "PNG" if format_idx == 0 else "JPEG"
+        image_format = "PNG"
 
         feedback.pushInfo("🎨 Starting AI Processing...")
         feedback.pushInfo(f"Output Directory: {output_dir}")
@@ -170,6 +158,8 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
             render_extent.xMaximum(), render_extent.yMaximum()
         )
 
+        aspect_ratio = self._format_aspect_ratio(tile_width, tile_height)
+
         label = self.TILE_SIZE_CANVAS_LABEL if use_canvas_aspect else self.TILE_SIZE_CHOICES[tile_size_idx][0]
         feedback.pushInfo(f"Tile Size: {tile_width}×{tile_height} ({label}), Format: {image_format}")
 
@@ -180,6 +170,10 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
 
         # Subclass provides the specific payload and file naming
         filename, payload = self.get_api_specifics(parameters, context)
+        if payload is None:
+            payload = {}
+        if "aspect_ratio" not in payload:
+            payload["aspect_ratio"] = aspect_ratio
         output_path = os.path.join(output_dir, filename)
 
         feedback.pushInfo(f"Processing tile -> {filename}")
@@ -239,6 +233,17 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
         half_w = new_width / 2
         half_h = new_height / 2
         return QgsRectangle(cx - half_w, cy - half_h, cx + half_w, cy + half_h)
+
+    def _format_aspect_ratio(self, width: int, height: int) -> str:
+        """Returns a simplified aspect ratio string (e.g., '16:9')."""
+        if width <= 0 or height <= 0:
+            return "1:1"
+        ratio_gcd = gcd(width, height)
+        if ratio_gcd == 0:
+            return "1:1"
+        normalized_w = max(1, width // ratio_gcd)
+        normalized_h = max(1, height // ratio_gcd)
+        return f"{normalized_w}:{normalized_h}"
 
     def load_result_into_qgis(self, image_path: str, extent: QgsRectangle, crs: Any, feedback: QgsProcessingFeedback):
         """Loads the processed raster layer into the QGIS project."""

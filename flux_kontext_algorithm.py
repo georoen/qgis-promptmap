@@ -64,9 +64,7 @@ class FluxKontextAlgorithm(BaseAiAlgorithm):
         
         safety = self.parameterAsInt(parameters, self.SAFETY, context)
 
-        format_idx = self.parameterAsEnum(parameters, self.IMAGE_FORMAT, context)
-        image_format = "png" if format_idx == 0 else "jpeg"
-        filename = f"{self.api_config.id}_result.{image_format}"
+        filename = f"{self.api_config.id}_result.png"
 
         payload = {
             "prompt": prompt,
