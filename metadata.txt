@@ -2,7 +2,7 @@
 name=AI Toolbox
 qgisMinimumVersion=3.20
 description=Semantic segmentation using FLUX API for AI-powered map visualization
-version=0.2.0
+version=0.2.1
 author=Jeroen Staab
 email=email@jstaab.de
 

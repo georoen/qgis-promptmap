@@ -1,5 +1,17 @@
 from typing import Dict, Any, NamedTuple
 
+DEFAULT_PROMPT = (
+    "You are an expert in remote sensing and well trained in interpreting earth observation data. "
+    "Create a clean, stylized map from the provided reference image. "
+    "Represent buildings as solid black shapes with sharp edges. "
+    "Trace roads and paths as thin white lines. "
+    "Identify green spaces like parks and vegetation, and represent them as solid green areas. "
+    "Open water bodies are represented as solid blue areas. "
+    "Open soil should appear in a light yellowish tone. "
+    "The final map must be a high-contrast, minimalist, and flat graphic, suitable for architectural "
+    "diagrams or site analysis."
+)
+
 class ApiConfig(NamedTuple):
     """
     Data structure to hold all API-specific configurations.
@@ -39,8 +51,8 @@ FLUX_ULTRA_CONFIG = ApiConfig(
         "aspect_ratio": "1:1",
         "safety_tolerance": 2
     },
-    prompt_label="Style Prompt",
-    prompt_default="A beautiful and detailed watercolor painting."
+    prompt_label="Prompt",
+    prompt_default=DEFAULT_PROMPT
 )
 
 FLUX_KONTEXT_CONFIG = ApiConfig(
@@ -53,8 +65,8 @@ FLUX_KONTEXT_CONFIG = ApiConfig(
         "aspect_ratio": "1:1",
         "safety_tolerance": 2
     },
-    prompt_label="Edit Prompt (e.g., 'make it a winter scene')",
-    prompt_default="Change the season to winter, with snow on the ground."
+    prompt_label="Prompt",
+    prompt_default=DEFAULT_PROMPT
 )
 
 # A dictionary to easily access configurations by their ID
