@@ -254,4 +254,22 @@ graph TD
 -   **API Handlers**: For each specific service (like FLUX Ultra, FLUX Kontext, Mistral), a dedicated handler class or method will be implemented within the `RemoteAiEngine`.
 -   **QGIS Algorithms**: The user-facing algorithms (`FluxUltraAlgorithm`, `FluxKontextAlgorithm`) will become very lightweight, inheriting from `BaseAiAlgorithm` and simply specifying which API configuration to use.
 
+### API Parameter Coverage
+
+| Implemented | FLUX.1 Kontext | FLUX 1.1 [pro] Ultra | Description |
+| --- | --- | --- | --- |
+| [x] | `prompt` | `prompt` | Text description of the edit or target image (required UI field). |
+| [x] | `input_image` | `image_prompt` | Canvas snapshot automatically attached as base64 guidance. |
+| [ ] | `aspect_ratio` | `aspect_ratio` | Not exposed in the UI; APIs use their defaults (Kontext 1:1, Ultra 16:9). |
+| [x] | `seed` | `seed` | Optional integer seed collected via the Processing form. |
+| [ ] | `prompt_upsampling` | `prompt_upsampling` | Prompt enhancement flag (not surfaced yet). |
+| [x]* | `safety_tolerance` | `safety_tolerance` | Moderation level (0–6). Only the Kontext tool has a UI control; Ultra keeps its config default (2). |
+| [x] | `output_format` | `output_format` | Image format (`jpeg`/`png`) chosen via the Processing parameter. |
+| [ ] | — | `raw` | Ultra-only toggle for “raw” aesthetics (not exposed). |
+| [ ] | — | `image_prompt_strength` | Ultra-only float (0–1). Stays at the config default (0.8). |
+| [ ] | `webhook_url` | `webhook_url` | Optional callback URL (not implemented). |
+| [ ] | `webhook_secret` | `webhook_secret` | Optional secret for webhook verification (not implemented). |
+
+*Kontext exposes `safety_tolerance`; Ultra silently uses the default defined in `flux_api_config.py`.
+
 This refactoring will pave the way for easy integration of new AI services while keeping the core logic clean and centralized.
