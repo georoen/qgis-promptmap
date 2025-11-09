@@ -6,19 +6,33 @@ FLUX 1.1 [pro] Ultra, and loads the returned PNG back into your project with pro
 georeferencing. The default prompt emphasises buildings, roads, vegetation, soil, and
 water—perfect for quick site analysis or presentation graphics.
 
----
 
-## Why cartographers love it
+## From image to map in less than 10 seconds
+Have you ever looked at high resolution satellite imagery and wondered, how to turn the
+information into map? 
 
-- **Semantic look** – ships with a shared remote-sensing prompt so both models behave
-  like lightweight land-cover classifiers.
-- **Canvas-aware** – respects your current map view, including aspect ratio and CRS.
-- **Two FLUX brains** – switch between Kontext (image editing) and Ultra (stylisation)
-  without rewriting prompts.
-- **Clean UX** – only API Key + Prompt are required; everything else sits behind the
-  Processing “Advanced” toggle.
+| Input Canvas (Bing Satellite) | Default output (FLUX.1 Kontext) |
+| --- | --- |
+| ![Input](docs/bing_satellite.png) | ![Output](docs/flux_kontext_defaults.png) |
 
----
+The default prompt is tuned for urban domains: buildings become crisp black solids, roads
+and rails pop as white lines, open green turns solid emerald, soil is pale yellow, and
+water bodies shine in blue. Use natural-language tweaks to pivot toward other thematic
+topics whenever you need to highlight different classes.
+
+- **Semantic look** – Lightweight land-cover classifier (a.k.a. thematic rendering, urban fabric maps,
+  geo-semantic styling, contextual land-use depiction, or automated cartographic shading).
+- **Source agnostic** – Ingests satellite, aerial or drone imagery as basemaps. Everything
+  you see on your canvas is  forwarded to the AI model.
+- **Clean UX** – Only API Key + Prompt are required. Advanced options available.
+
+## Usage
+
+![Processing dialog screenshot](docs/screenshot.png)
+
+The full matrix of embeded parameters is in [`docs/flux_models.md`](docs/flux_models.md). Please also see the official BFL docs for [FLUX 1 Kontext](https://docs.bfl.ai/kontext/kontext_image_editing#flux-1-kontext-image-editing-parameters) and 
+[FLUX 1.1 Ultra](https://docs.bfl.ai/flux/flux_pro#flux-11-ultra) for further details.
+
 
 ## Quickstart
 
@@ -28,82 +42,33 @@ water—perfect for quick site analysis or presentation graphics.
    cp -r /Users/jstaab/Desktop/qgis_flux \
          ~/Library/Application\ Support/QGIS/QGIS3/profiles/default/python/plugins/
    ```
-   Then restart QGIS and enable *qgis_flux* under **Plugins → Manage and Install…**
+   Then restart QGIS and enable *AI Toolbox* under **Plugins → Manage and Install…**
 
 2. **Grab an API key** from <https://api.bfl.ai/> (needs FLUX pro credit). Paste it into
    the Processing dialog every time or store it via the QGIS **Favorites** feature.
 
-3. **Open the Processing Toolbox → FLUX AI Processing** and pick either *FLUX 1.1 Ultra*
-   or *FLUX.1 Kontext*. Leave the default prompt in place for semantic segmentation or
-   tweak it to your needs. Hit **Run**.
+3. **Open the Processing Toolbox → FLUX AI Processing** and pick either *FLUX.1 Kontext*
+   or *FLUX 1.1 Ultra* (Experimental!). Leave the default prompt in place for semantic 
+   segmentation or tweak it to your needs. Hit **Run**.
 
-You’ll find the PNG result (plus its world file and log) in the chosen output folder, and
-the layer loads automatically under an “AI Results” group.
+After a few seconds of processing, the layer loads automatically under an “AI Results” group.
 
----
-
-## Workflow in three steps
-
-1. **PREPARE** – `BaseAiAlgorithm` renders the current canvas extent to PNG based on the
-   tile size you picked (512², 1024², 2048², 16:9, or full canvas). Aspect ratio is
-   derived automatically and sent to the API.
-2. **PROCESS** – `RemoteAiEngine` uploads the PNG together with your prompt and advanced
-   settings (seed, safety tolerance, raw mode, image prompt strength) and polls the FLUX
-   endpoint until the job is ready.
-3. **INTEGRATE** – the PNG is downloaded, georeferenced (PNG + PGW), optionally VRT’d in
-   the future, and inserted back into QGIS with the same extent you just processed.
-
-We always request PNG output to keep transparency/headless workflows simple.
-
----
-
-## Parameters
-
-| Parameter | Default | Notes |
-| --- | --- | --- |
-| **FLUX API Key** | — | Required. Obtain from <https://api.bfl.ai/>. |
-| **Prompt** | Remote-sensing land-cover prompt | Shared constant documented in `flux_api_config.py`; feel free to edit per run. |
-| **Tile Size** *(Advanced)* | `1024×1024 (1:1)` | Preset pixel sizes plus “Map Canvas (Full Extent)”. Determines rendered resolution **and** the `aspect_ratio` sent to FLUX. |
-| **Output Directory** *(Advanced)* | QGIS temp dir | Folder for PNG, PGW, and log files. |
-| **Random Seed** *(Advanced)* | blank | Forwarded to both APIs when provided. |
-| **Safety Tolerance** *(Advanced)* | `2` | Available in both algorithms; matches FLUX moderation scale (0–6). |
-| **Raw Mode** *(Ultra only, Advanced)* | `False` | Toggles the Ultra-specific `raw` flag. |
-| **Image Prompt Strength** *(Ultra only, Advanced)* | `0.8` | Float between 0–1 controlling how much the rendered canvas influences Ultra. |
-
-Looking for the full matrix of parameters per model? See
-[`docs/flux_models.md`](docs/flux_models.md) and cross-check with the official BFL docs:
-Kontext (<https://docs.bfl.ai/kontext/kontext_image_editing#flux-1-kontext-image-editing-parameters>)
-and Ultra (<https://docs.bfl.ai/flux/flux_pro#flux-11-ultra>).
-
----
 
 ## Troubleshooting
 
-- **Plugin fails to load** – remove the plugin folder under
-  `~/Library/Application Support/QGIS/QGIS3/.../plugins/qgis_flux/` and copy it again,
-  then restart QGIS.
-- **401 / API errors** – make sure your key starts with `sk-` and you have pro credits.
+- **401 / API errors** – make sure your key is valid and you have enough credits.
 - **Timeout / Failed** – rerun later or reduce the tile size. Check the generated log in
   your output directory.
 - **Nothing shows up** – ensure at least one layer is visible on the canvas; the plugin
   renders what you currently see.
 
----
+> Note: The software comes without warranty. It serves as interface between QGIS and Black Forest Labs. It is not responsible for the models output. The user is responsible for the image rights attached to the map canvas. 
+> AI generated results may be wrong. 
 
-## Development & tests
-
-```bash
-python3 -m pytest tests -v
-```
-
-The tests mock out QGIS/FLUX internals and focus on the remote-engine workflow,
-polling, logging, and world-file generation. When editing Processing parameters, run a
-manual smoke test inside QGIS because the UI requires a live canvas.
-
----
 
 ## Support & contact
 
-- Issues / feature requests: <https://github.com/georoen/qgis-flux>
 - Author: Jeroen Staab – email@jstaab.de
-- Tag your renders with **#qgisflux** so we can see what you build!
+- Issues / feature requests: <https://github.com/georoen/qgis-flux>
+
+Tag your renders with **#qgisflux** so we can see what you build!
