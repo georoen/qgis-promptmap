@@ -263,13 +263,11 @@ graph TD
 | [ ] | `aspect_ratio` | `aspect_ratio` | Not exposed in the UI; APIs use their defaults (Kontext 1:1, Ultra 16:9). |
 | [x] | `seed` | `seed` | Optional integer seed collected via the Processing form. |
 | [ ] | `prompt_upsampling` | `prompt_upsampling` | Prompt enhancement flag (not surfaced yet). |
-| [x]* | `safety_tolerance` | `safety_tolerance` | Moderation level (0–6). Only the Kontext tool has a UI control; Ultra keeps its config default (2). |
+| [x] | `safety_tolerance` | `safety_tolerance` | Moderation level (0–6). Both Kontext and Ultra expose a Processing parameter now. |
 | [x] | `output_format` | `output_format` | Image format (`jpeg`/`png`) chosen via the Processing parameter. |
-| [ ] | — | `raw` | Ultra-only toggle for “raw” aesthetics (not exposed). |
-| [ ] | — | `image_prompt_strength` | Ultra-only float (0–1). Stays at the config default (0.8). |
+| [x] | — | `raw` | Ultra-only toggle (“Raw Mode”) exposed via a Processing checkbox. |
+| [x] | — | `image_prompt_strength` | Ultra-only float slider (0–1) controlling how strongly the canvas affects the result. |
 | [ ] | `webhook_url` | `webhook_url` | Optional callback URL (not implemented). |
 | [ ] | `webhook_secret` | `webhook_secret` | Optional secret for webhook verification (not implemented). |
-
-*Kontext exposes `safety_tolerance`; Ultra silently uses the default defined in `flux_api_config.py`.
 
 This refactoring will pave the way for easy integration of new AI services while keeping the core logic clean and centralized.
