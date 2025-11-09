@@ -38,47 +38,46 @@ class FluxStylizeAlgorithm(BaseAiAlgorithm):
 
     def initAlgorithm(self, config=None):
         super().initAlgorithm(config)
-        self.addParameter(
-            QgsProcessingParameterString(
-                self.PROMPT,
-                self.api_config.prompt_label,
-                defaultValue=self.api_config.prompt_default,
-                multiLine=True,
-                optional=False
-            )
+        prompt_param = QgsProcessingParameterString(
+            self.PROMPT,
+            self.api_config.prompt_label,
+            defaultValue=self.api_config.prompt_default,
+            multiLine=True,
+            optional=False
         )
+        self.addParameter(prompt_param)
 
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.SAFETY,
-                "Safety Tolerance (0=strict, 6=permissive)",
-                type=QgsProcessingParameterNumber.Integer,
-                defaultValue=self.api_config.default_payload.get("safety_tolerance", 2),
-                minValue=0,
-                maxValue=6,
-                optional=True
-            )
+        safety_param = QgsProcessingParameterNumber(
+            self.SAFETY,
+            "Safety Tolerance (0=strict, 6=permissive)",
+            type=QgsProcessingParameterNumber.Integer,
+            defaultValue=self.api_config.default_payload.get("safety_tolerance", 2),
+            minValue=0,
+            maxValue=6,
+            optional=True
         )
+        self._mark_advanced(safety_param)
+        self.addParameter(safety_param)
 
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.RAW_MODE,
-                "Enable Raw Mode (more natural aesthetics)",
-                defaultValue=self.api_config.default_payload.get("raw", False)
-            )
+        raw_param = QgsProcessingParameterBoolean(
+            self.RAW_MODE,
+            "Enable Raw Mode (more natural aesthetics)",
+            defaultValue=self.api_config.default_payload.get("raw", False)
         )
+        self._mark_advanced(raw_param)
+        self.addParameter(raw_param)
 
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.IMAGE_PROMPT_STRENGTH,
-                "Image Prompt Strength (0-1)",
-                type=QgsProcessingParameterNumber.Double,
-                defaultValue=self.api_config.default_payload.get("image_prompt_strength", 0.8),
-                minValue=0.0,
-                maxValue=1.0,
-                optional=False
-            )
+        strength_param = QgsProcessingParameterNumber(
+            self.IMAGE_PROMPT_STRENGTH,
+            "Image Prompt Strength (0-1)",
+            type=QgsProcessingParameterNumber.Double,
+            defaultValue=self.api_config.default_payload.get("image_prompt_strength", 0.8),
+            minValue=0.0,
+            maxValue=1.0,
+            optional=False
         )
+        self._mark_advanced(strength_param)
+        self.addParameter(strength_param)
 
     def get_api_specifics(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> (str, Dict[str, Any]):
         """Provides the specific configuration for the API call."""

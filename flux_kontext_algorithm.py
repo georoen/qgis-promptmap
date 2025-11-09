@@ -35,26 +35,26 @@ class FluxKontextAlgorithm(BaseAiAlgorithm):
 
     def initAlgorithm(self, config=None):
         super().initAlgorithm(config)
-        self.addParameter(
-            QgsProcessingParameterString(
-                self.PROMPT,
-                self.api_config.prompt_label,
-                defaultValue=self.api_config.prompt_default,
-                multiLine=True,
-                optional=False
-            )
+        prompt_param = QgsProcessingParameterString(
+            self.PROMPT,
+            self.api_config.prompt_label,
+            defaultValue=self.api_config.prompt_default,
+            multiLine=True,
+            optional=False
         )
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.SAFETY,
-                "Safety Tolerance (0=strict, 6=permissive)",
-                type=QgsProcessingParameterNumber.Integer,
-                defaultValue=self.api_config.default_payload.get("safety_tolerance", 2),
-                minValue=0,
-                maxValue=6,
-                optional=True
-            )
+        self.addParameter(prompt_param)
+
+        safety_param = QgsProcessingParameterNumber(
+            self.SAFETY,
+            "Safety Tolerance (0=strict, 6=permissive)",
+            type=QgsProcessingParameterNumber.Integer,
+            defaultValue=self.api_config.default_payload.get("safety_tolerance", 2),
+            minValue=0,
+            maxValue=6,
+            optional=True
         )
+        self._mark_advanced(safety_param)
+        self.addParameter(safety_param)
 
     def get_api_specifics(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> (str, Dict[str, Any]):
         """Provides the specific configuration for the API call."""

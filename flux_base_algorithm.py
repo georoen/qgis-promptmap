@@ -8,6 +8,7 @@ from qgis.core import (
     QgsProcessingParameterNumber,
     QgsProcessingParameterEnum,
     QgsProcessingParameterFolderDestination,
+    QgsProcessingParameterDefinition,
     QgsProcessingContext,
     QgsProcessingFeedback,
     QgsProcessingException,
@@ -85,33 +86,33 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
 
         tile_size_options = [label for label, _ in self.TILE_SIZE_CHOICES]
         tile_size_options.append(self.TILE_SIZE_CANVAS_LABEL)
-        self.addParameter(
-            QgsProcessingParameterEnum(
-                self.TILE_SIZE,
-                "Tile Size",
-                options=tile_size_options,
-                defaultValue=1,  # Default to 1024×1024 for better quality
-                optional=False
-            )
+        tile_param = QgsProcessingParameterEnum(
+            self.TILE_SIZE,
+            "Tile Size",
+            options=tile_size_options,
+            defaultValue=1,
+            optional=False
         )
+        self._mark_advanced(tile_param)
+        self.addParameter(tile_param)
 
-        self.addParameter(
-            QgsProcessingParameterFolderDestination(
-                self.OUTPUT_DIR,
-                "Output Directory"
-            )
+        output_param = QgsProcessingParameterFolderDestination(
+            self.OUTPUT_DIR,
+            "Output Directory"
         )
+        self._mark_advanced(output_param)
+        self.addParameter(output_param)
 
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                self.SEED,
-                "Random Seed (optional)",
-                type=QgsProcessingParameterNumber.Integer,
-                optional=True,
-                minValue=1,
-                maxValue=999999999
-            )
+        seed_param = QgsProcessingParameterNumber(
+            self.SEED,
+            "Random Seed (optional)",
+            type=QgsProcessingParameterNumber.Integer,
+            optional=True,
+            minValue=1,
+            maxValue=999999999
         )
+        self._mark_advanced(seed_param)
+        self.addParameter(seed_param)
 
     def processAlgorithm(self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback):
         """Orchestrates the PREPARE -> PROCESS -> INTEGRATE workflow."""
@@ -244,6 +245,12 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
         normalized_w = max(1, width // ratio_gcd)
         normalized_h = max(1, height // ratio_gcd)
         return f"{normalized_w}:{normalized_h}"
+
+    def _mark_advanced(self, parameter):
+        """Sets the advanced flag on a processing parameter (QGIS < 3.16 compatibility)."""
+        if hasattr(parameter, "flags"):
+            parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        return parameter
 
     def load_result_into_qgis(self, image_path: str, extent: QgsRectangle, crs: Any, feedback: QgsProcessingFeedback):
         """Loads the processed raster layer into the QGIS project."""
