@@ -37,12 +37,11 @@ The full matrix of embeded parameters is in [`docs/flux_models.md`](docs/flux_mo
 ## Quickstart
 
 1. **Install the plugin**
-   ```bash
-   rm -rf ~/Library/Application\ Support/QGIS/QGIS3/profiles/default/python/plugins/qgis_flux/
-   cp -r /Users/jstaab/Desktop/qgis_flux \
-         ~/Library/Application\ Support/QGIS/QGIS3/profiles/default/python/plugins/
-   ```
-   Then restart QGIS and enable *AI Toolbox* under **Plugins → Manage and Install…**
+   Download ZIP from GitHub. 
+   Then open **QGis -> Plugins -> Manage and Install… -> Install from ZIP**. Eventually **enable the installed *AI Toolbox***.
+   A graphical illustration can be found [here](docs/install_ZIP.png).
+   
+   You do now find the *AI Toolbox* within your processing tools.
 
 2. **Grab an API key** from <https://api.bfl.ai/> (needs FLUX pro credit). Paste it into
    the Processing dialog every time or store it via the QGIS **Favorites** feature.
@@ -70,5 +69,6 @@ After a few seconds of processing, the layer loads automatically under an “AI 
 
 - Author: Jeroen Staab – email@jstaab.de
 - Issues / feature requests: <https://github.com/georoen/qgis-flux>
+- Professionals can book individual onboarding, teachings and use-case specific consultations by contacting [Dr. J. Staab Research](https://jstaab.de)
 
 Tag your renders with **#qgisflux** so we can see what you build!
