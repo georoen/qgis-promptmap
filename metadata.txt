@@ -1,16 +1,16 @@
 [general]
 name=AI Toolbox
 qgisMinimumVersion=3.20
-description=Semantic segmentation using FLUX API for AI-powered map visualization
+description=Semantic segmentation and AI cartography powered by FLUX Kontext & Ultra APIs
 version=0.2.1
 author=Jeroen Staab
 email=email@jstaab.de
 
-about=Transform raster map tiles with AI-powered stylization using FLUX API. Create artistic, themed, or enhanced visualizations of your geospatial data.
+about=Transform your current QGIS canvas into a high-contrast land-cover rendering. The plugin renders the live map view, sends it to FLUX.1 Kontext or FLUX 1.1 Ultra, and returns a georeferenced layer that emphasizes buildings, roads, vegetation, soil, and water for fast site analysis.
 
 tracker=https://github.com/georoen/qgis-flux/issues
 repository=https://github.com/georoen/qgis-flux
-changelog=Initial release with tile processing and VRT generation
+changelog=Unified semantic-segmentation prompt, aspect-ratio aware tiling, PNG-only output, new FLUX Ultra controls (safety, raw mode, prompt strength), and advanced-parameter UX.
 
 tags=raster,processing,ai,flux,stylization
 homepage=https://github.com/georoen/qgis-flux
