@@ -7,7 +7,6 @@ from qgis.core import (
     QgsProcessingParameterNumber,
     QgsProcessingParameterEnum,
     QgsProcessingParameterFolderDestination,
-    QgsProcessingParameterBoolean,
     QgsProcessingContext,
     QgsProcessingFeedback,
     QgsProcessingException,
@@ -37,7 +36,14 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
     OUTPUT_DIR = "OUTPUT_DIR"
     IMAGE_FORMAT = "IMAGE_FORMAT"
     SEED = "SEED"
-    PRESERVE_CANVAS_ASPECT = "PRESERVE_CANVAS_ASPECT"
+
+    TILE_SIZE_CHOICES = [
+        ("512×512 (1:1)", (512, 512)),
+        ("1024×1024 (1:1)", (1024, 1024)),
+        ("2048×2048 (1:1)", (2048, 2048)),
+        ("1280×720 (16:9)", (1280, 720)),
+    ]
+    TILE_SIZE_CANVAS_LABEL = "Map Canvas (Full Extent)"
 
     @property
     def api_config(self) -> ApiConfig:
@@ -77,21 +83,15 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
         # The 'PROMPT' parameter will be added by subclasses
         # (this is now handled by the subclass initAlgorithm)
 
+        tile_size_options = [label for label, _ in self.TILE_SIZE_CHOICES]
+        tile_size_options.append(self.TILE_SIZE_CANVAS_LABEL)
         self.addParameter(
             QgsProcessingParameterEnum(
                 self.TILE_SIZE,
                 "Tile Size",
-                options=["512×512", "1024×1024"],
-                defaultValue=1,  # Default to 1024 for better quality
+                options=tile_size_options,
+                defaultValue=1,  # Default to 1024×1024 for better quality
                 optional=False
-            )
-        )
-
-        self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.PRESERVE_CANVAS_ASPECT,
-                "Use Canvas Aspect Ratio",
-                defaultValue=False
             )
         )
 
@@ -137,44 +137,41 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
         output_dir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
         format_idx = self.parameterAsEnum(parameters, self.IMAGE_FORMAT, context)
         seed = self.parameterAsInt(parameters, self.SEED, context) if parameters.get(self.SEED) is not None else None
-        preserve_aspect = self.parameterAsBoolean(parameters, self.PRESERVE_CANVAS_ASPECT, context)
+        use_canvas_aspect = tile_size_idx == len(self.TILE_SIZE_CHOICES)
 
-        N = 512 if tile_size_idx == 0 else 1024
         image_format = "PNG" if format_idx == 0 else "JPEG"
 
         feedback.pushInfo("🎨 Starting AI Processing...")
         feedback.pushInfo(f"Output Directory: {output_dir}")
 
-        # Get canvas extent and calculate a square processing area
+        # Get canvas extent and derive the processing footprint
         canvas = iface.mapCanvas()
         extent = canvas.extent()
         crs = canvas.mapSettings().destinationCrs()
         feedback.pushInfo(f"Processing current canvas view: {extent.toString()} in {crs.authid()}")
 
-        w, h = extent.width(), extent.height()
         canvas_size = canvas.mapSettings().outputSize()
         canvas_width_px = max(canvas_size.width(), 1)
         canvas_height_px = max(canvas_size.height(), 1)
 
-        if preserve_aspect:
+        if use_canvas_aspect:
             render_extent = extent
-            scale = N / max(canvas_width_px, canvas_height_px)
-            tile_width = max(1, int(round(canvas_width_px * scale)))
-            tile_height = max(1, int(round(canvas_height_px * scale)))
+            tile_width = canvas_width_px
+            tile_height = canvas_height_px
         else:
-            cx, cy = extent.center().x(), extent.center().y()
-            half_size = max(w, h) / 2
-            render_extent = QgsRectangle(cx - half_size, cy - half_size, cx + half_size, cy + half_size)
-            tile_width = tile_height = N
+            tile_width, tile_height = self.TILE_SIZE_CHOICES[tile_size_idx][1]
+            tile_width = max(1, int(tile_width))
+            tile_height = max(1, int(tile_height))
+            desired_ratio = tile_width / tile_height if tile_height else 1.0
+            render_extent = self._extent_with_aspect_ratio(extent, desired_ratio)
 
         extent_tuple = (
             render_extent.xMinimum(), render_extent.yMinimum(),
             render_extent.xMaximum(), render_extent.yMaximum()
         )
 
-        feedback.pushInfo(f"Tile Size: {tile_width}×{tile_height}, Format: {image_format}")
-        if preserve_aspect:
-            feedback.pushInfo("Canvas aspect ratio preserved (experimental mode)")
+        label = self.TILE_SIZE_CANVAS_LABEL if use_canvas_aspect else self.TILE_SIZE_CHOICES[tile_size_idx][0]
+        feedback.pushInfo(f"Tile Size: {tile_width}×{tile_height} ({label}), Format: {image_format}")
 
         # --- PROCESS Phase (delegated to subclass) ---
 
@@ -212,6 +209,36 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
         
         feedback.pushInfo(f"🎉 Processing complete. Log file: {log_path}")
         return {"OUTPUT_DIR": output_dir}
+
+    def _extent_with_aspect_ratio(self, extent: QgsRectangle, desired_ratio: float) -> QgsRectangle:
+        """Crops the current extent to match the desired width/height ratio."""
+        if desired_ratio <= 0:
+            return extent
+
+        w = extent.width()
+        h = extent.height()
+        if w <= 0 or h <= 0:
+            return extent
+
+        current_ratio = w / h
+        cx, cy = extent.center().x(), extent.center().y()
+
+        if desired_ratio > current_ratio:
+            # Requested aspect is wider than the current view -> crop vertically
+            new_width = w
+            new_height = min(h, w / desired_ratio)
+            if new_height <= 0:
+                new_height = h
+        else:
+            # Requested aspect is taller -> crop horizontally
+            new_height = h
+            new_width = min(w, h * desired_ratio)
+            if new_width <= 0:
+                new_width = w
+
+        half_w = new_width / 2
+        half_h = new_height / 2
+        return QgsRectangle(cx - half_w, cy - half_h, cx + half_w, cy + half_h)
 
     def load_result_into_qgis(self, image_path: str, extent: QgsRectangle, crs: Any, feedback: QgsProcessingFeedback):
         """Loads the processed raster layer into the QGIS project."""
