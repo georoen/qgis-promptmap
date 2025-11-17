@@ -1,214 +1,74 @@
-# QGIS FLUX AI Plugin 🗺️✨
+# QGIS FLUX AI Toolbox
 
-**Verwandle deine Karten in Kunstwerke mit FLUX 1.1 [pro] Ultra AI!**
+Turn your current QGIS canvas into a high-contrast land-cover rendering with a single
+Processing algorithm. The plugin captures the visible map, sends it to FLUX.1 Kontext or
+FLUX 1.1 [pro] Ultra, and loads the returned PNG back into your project with proper
+georeferencing. The default prompt emphasises buildings, roads, vegetation, soil, and
+water—perfect for quick site analysis or presentation graphics.
 
-Dieses QGIS-Plugin nutzt die FLUX AI-Technologie, um deine Rasterkarten in stilisierte, künstlerische Visualisierungen zu verwandeln.
 
----
+## From image to map in less than 10 seconds
+Have you ever looked at high resolution satellite imagery and wondered, how to turn the
+information into map? 
 
-## 🚀 Schritt-für-Schritt Installation
+| Input Canvas (Bing Satellite) | Default output (FLUX.1 Kontext) |
+| --- | --- |
+| ![Input](docs/bing_satellite.png) | ![Output](docs/flux_kontext_defaults.png) |
 
-### 1. Plugin installieren
+The default prompt is tuned for urban domains: buildings become crisp black solids, roads
+and rails pop as white lines, open green turns solid emerald, soil is pale yellow, and
+water bodies shine in blue. Use natural-language tweaks to pivot toward other thematic
+topics whenever you need to highlight different classes.
 
-**Option A: Direkt kopieren (empfohlen)**
-```bash
-# Terminal öffnen und ausführen:
-rm -rf ~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/qgis_flux/
-cp -r /Users/jstaab/Desktop/qgis_flux ~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/
-```
+- **Semantic look** – Lightweight land-cover classifier (a.k.a. thematic rendering, urban fabric maps,
+  geo-semantic styling, contextual land-use depiction, or automated cartographic shading).
+- **Source agnostic** – Ingests satellite, aerial or drone imagery as basemaps. Everything
+  you see on your canvas is  forwarded to the AI model.
+- **Clean UX** – Only API Key + Prompt are required. Advanced options available.
 
-**Option B: ZIP-Installation**
-1. Diesen Ordner als ZIP komprimieren
-2. QGIS → Erweiterungen → Erweiterungen verwalten und installieren → "Install from ZIP"
+## Usage
 
-### 2. FLUX API Key besorgen
+![Processing dialog screenshot](docs/screenshot.png)
 
-🔗 **Gehe zu: https://api.bfl.ai/**
-1. Account erstellen/einloggen
-2. API Key kopieren (beginnt mit `sk-`)
-3. **Wichtig:** Du brauchst Guthaben für FLUX 1.1 [pro] Ultra ($0.06 pro Bild)
+The full matrix of embeded parameters is in [`docs/flux_models.md`](docs/flux_models.md). Please also see the official BFL docs for [FLUX 1 Kontext](https://docs.bfl.ai/kontext/kontext_image_editing#flux-1-kontext-image-editing-parameters) and 
+[FLUX 1.1 Ultra](https://docs.bfl.ai/flux/flux_pro#flux-11-ultra) for further details.
 
-### 3. QGIS neu starten
 
-**Wichtig:** QGIS komplett schließen und neu öffnen, damit das Plugin erkannt wird.
+## Quickstart
 
-### 4. Plugin aktivieren
+1. **Install the plugin**
+   Download ZIP from GitHub. 
+   Then open **QGis -> Plugins -> Manage and Install… -> Install from ZIP**. Eventually **enable the installed *AI Toolbox***.
+   A graphical illustration can be found [here](docs/install_ZIP.png).
+   
+   You do now find the *AI Toolbox* within your processing tools.
 
-1. QGIS → **Erweiterungen** → **Erweiterungen verwalten**
-2. **"Installierte"** Tab
-3. ✅ **"qgis_flux"** aktivieren
+2. **Grab an API key** from <https://api.bfl.ai/> (needs FLUX pro credit). Paste it into
+   the Processing dialog every time or store it via the QGIS **Favorites** feature.
 
-### 5. Plugin finden und nutzen
+3. **Open the Processing Toolbox → FLUX AI Processing** and pick either *FLUX.1 Kontext*
+   or *FLUX 1.1 Ultra* (Experimental!). Leave the default prompt in place for semantic 
+   segmentation or tweak it to your needs. Hit **Run**.
 
-1. **Processing Toolbox** öffnen (View → Panels → Processing Toolbox)
-2. **"FLUX AI Processing"** Gruppe finden
-3. **"FLUX Stylize Tiles"** doppelklicken
+After a few seconds of processing, the layer loads automatically under an “AI Results” group.
 
----
 
-## 🎯 Erste Verwendung
+## Troubleshooting
 
-### Parameter eingeben:
+- **401 / API errors** – make sure your key is valid and you have enough credits.
+- **Timeout / Failed** – rerun later or reduce the tile size. Check the generated log in
+  your output directory.
+- **Nothing shows up** – ensure at least one layer is visible on the canvas; the plugin
+  renders what you currently see.
 
-| **Parameter** | **Was eintragen** | **Beispiel** |
-|---------------|-------------------|---------------|
-| **Input Raster Layer** | Deine Rasterkarte auswählen | OpenStreetMap, Satellitenbild |
-| **FLUX API Key** | Dein API Key einfügen | `sk-abc123xyz...` |
-| **Style Prompt** | Gewünschten Stil beschreiben | `watercolor painting` |
-| **Tile Size** | Bildgröße wählen | `1024×1024` (bessere Qualität) |
-| **Output Directory** | Ordner für Ergebnisse | `/Users/jstaab/Desktop/flux_output/` |
-| **Output Format** | Bildformat | `PNG` (mit Transparenz) |
-| **Create VRT** | ✅ Mosaik erstellen | Für nahtlose Darstellung |
+> Note: The software comes without warranty. It serves as interface between QGIS and Black Forest Labs. It is not responsible for the models output. The user is responsible for the image rights attached to the map canvas. 
+> AI generated results may be wrong. 
 
-### **RUN** klicken → Fertig! 🎉
 
----
+## Support & contact
 
-## 🎨 Kreative Style-Prompts
+- Author: Jeroen Staab – email@jstaab.de
+- Issues / feature requests: <https://github.com/georoen/qgis-flux>
+- Professionals can book individual onboarding, teachings and use-case specific consultations by contacting [Dr. J. Staab Research](https://jstaab.de)
 
-```
-"watercolor landscape painting with soft brush strokes"
-"cyberpunk cityscape with neon lights and dark atmosphere"  
-"hand-drawn medieval fantasy map with aged parchment texture"
-"satellite view in infrared false color"
-"black and white pencil sketch with cross-hatching"
-"Van Gogh style oil painting with swirling brushstrokes"
-"retro 80s synthwave aesthetic with pink and blue gradients"
-"impressionist painting of autumn forest"
-"aerial photography with high contrast and dramatic lighting"
-"ancient cartographer style with decorative borders"
-```
-
----
-
-## 📁 Was passiert?
-
-### Ausgabe-Dateien:
-```
-/dein/ausgabe/ordner/
-├── flux_tile_000_000.png      # 🎨 Stylisierte Kachel  
-├── flux_tile_000_000.pgw      # 🌍 World-File (Georeferenz)
-├── flux_stylized_mosaic.vrt   # 🗂️ Mosaik aller Kacheln
-└── flux_processing.log        # 📋 Verarbeitungsprotokoll
-```
-
-### Automatisch passiert:
-1. **Kachelung:** Deine Karte wird in quadratische Stücke geteilt
-2. **FLUX AI:** Jede Kachel wird mit deinem Stil verschönert  
-3. **Georeferenzierung:** World-Files sorgen für korrekte Positionierung
-4. **QGIS-Integration:** VRT wird automatisch als Layer geladen
-
----
-
-## 🔧 Problemlösung
-
-### ❌ "Plugin kann nicht geladen werden"
-
-**Lösung:**
-```bash
-# Plugin komplett neu installieren
-rm -rf ~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/qgis_flux/
-cp -r /path/zu/qgis_flux ~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/
-```
-**Dann QGIS neu starten!**
-
-### ❌ "API Key Error 401"
-- API Key korrekt kopiert? (beginnt mit `sk-`)
-- Guthaben auf Konto vorhanden?
-- Internet-Verbindung OK?
-
-### ❌ "Timeout" oder "Failed"
-- Netzwerk langsam → längere Tiles nehmen mehr Zeit
-- Server überlastet → später versuchen
-- Details in `flux_processing.log` prüfen
-
-### ❌ "No VRT created"
-- GDAL fehlt (nicht kritisch - Tiles funktionieren trotzdem)
-- Einzelne PNG-Dateien manuell laden
-
-### 🏃‍♂️ Performance-Tipps
-- **Start klein:** Erst kleine Testgebiete (z.B. 1km²)
-- **Tile-Größe:** 512×512 ist schneller, 1024×1024 bessere Qualität
-- **Format:** PNG für Transparenz, JPEG für Speed
-
----
-
-## 🌟 Erweiterte Funktionen
-
-### Demo-Modus (ohne API)
-```bash
-export FLUX_DEMO_MODE=true
-# Plugin funktioniert ohne echte API-Calls für Tests
-```
-
-### Batch-Verarbeitung
-- Mehrere Karten → einzeln verarbeiten
-- Verschiedene Stile → unterschiedliche Prompts testen
-- Seeds → `42` für reproduzierbare Ergebnisse
-
-### API-Kosten optimieren  
-- **FLUX Ultra:** $0.06 per 4MP Bild
-- **Tipp:** Kleine Testbereiche zuerst, dann große Projekte
-- **Rechnung:** 10 Kacheln = ~$0.60
-
----
-
-## ⚙️ Technische Details
-
-### System-Anforderungen
-- **QGIS:** 3.20+ (getestet mit 3.42)
-- **Python:** 3.9+ mit requests
-- **Internet:** Für FLUX API-Zugriff
-- **Optional:** GDAL für VRT
-
-### API-Compatibility  
-- **Verwendet:** FLUX 1.1 [pro] Ultra mit Image-to-Image
-- **Endpoint:** `https://api.bfl.ai/v1/flux-pro-1.1-ultra`
-- **Features:** `image_prompt`, `image_prompt_strength`, Polling-Workflow
-
-### Datensicherheit
-- API Keys werden **niemals** geloggt
-- Requests über HTTPS verschlüsselt
-- Kein Caching von API-Antworten
-- Lokale Verarbeitung der Karten
-
----
-
-## 🧪 Entwicklung & Tests
-
-```bash
-# Tests ohne QGIS/FLUX ausführen
-python -m pytest tests/ -v
-
-# Core-Funktionen testen
-python -c "import flux_stylize_tiles; print('✅ Import funktioniert')"
-
-# Plugin-Struktur validieren
-ls -la qgis_flux/
-```
-
----
-
-## 📞 Support & Community
-
-### Erste Hilfe
-1. **Log-Datei prüfen:** `flux_processing.log` zeigt Details
-2. **Plugin neu installieren** (siehe oben)
-3. **QGIS neu starten** nach Plugin-Änderungen
-
-### Häufige Fragen
-- **"Warum dauert es so lange?"** → FLUX AI braucht Zeit für Qualität
-- **"Kostet das Geld?"** → Ja, $0.06 pro stylisierter Kachel
-- **"Kann ich offline arbeiten?"** → Nein, FLUX API benötigt Internet
-
----
-
-## 🎉 Viel Spaß!
-
-**Du hast jetzt alles, um beeindruckende AI-stylisierte Karten zu erstellen!**
-
-Teile deine Kreationen, experimentiere mit verschiedenen Prompts, und verwandle deine GIS-Daten in echte Kunstwerke.
-
----
-
-*Plugin erstellt für QGIS 3.x mit ❤️ und FLUX AI*
+Tag your renders with **#qgisflux** so we can see what you build!

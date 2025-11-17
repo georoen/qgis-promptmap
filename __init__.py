@@ -1,5 +1,5 @@
 from qgis.core import QgsProcessingProvider, QgsApplication
-from .flux_processing_algorithm import FluxStylizeAlgorithm
+from .flux_ultra_algorithm import FluxStylizeAlgorithm
 from .flux_kontext_algorithm import FluxKontextAlgorithm
 
 
@@ -10,14 +10,14 @@ class FluxProvider(QgsProcessingProvider):
         return "flux"
 
     def name(self):
-        return "FLUX AI Processing"
+        return "AI Toolbox"
 
     def icon(self):
         return QgsApplication.getThemeIcon("/mActionRasterize.svg")
 
     def loadAlgorithms(self):
         self.addAlgorithm(FluxStylizeAlgorithm())
-        self.addAlgorithm(FluxKontextAlgorithm())  # ✅ Zusätzliches Kontext Tool
+        self.addAlgorithm(FluxKontextAlgorithm())
 
 
 def classFactory(iface):
