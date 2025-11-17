@@ -137,7 +137,13 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
         canvas = iface.mapCanvas()
         extent = canvas.extent()
         crs = canvas.mapSettings().destinationCrs()
+        current_scale = canvas.scale()
         feedback.pushInfo(f"Processing current canvas view: {extent.toString()} in {crs.authid()}")
+        if current_scale and current_scale > 5000:
+            # Warn when user is zoomed out beyond the recommended interpretation scale.
+            feedback.pushWarning(
+                f"Map scale is ~1:{int(current_scale)}. The AI works best closer than 1:5000; consider zooming in."
+            )
 
         canvas_size = canvas.mapSettings().outputSize()
         canvas_width_px = max(canvas_size.width(), 1)

@@ -1,0 +1,15 @@
+flowchart TD
+    A[User runs FLUX AI Processing] --> B[Capture current QGIS canvas<br/>extent, CRS, scale]
+    B -->|Warn if scale > 1:5000| Bwarn[Feedback warning]
+    B --> C[Compute tile size & aspect<br/>crop extent if needed]
+    C --> D[Build payload<br/>prompt, seed, aspect ratio]
+    D --> E[RemoteAiEngine sends tile<br/>to BFL FLUX API]
+    D -.-> Dval[Validate prompt vs image content]
+    Dval -.-> Dwarn[Warn user if mismatch]
+    E --> F[AI returns rendered PNG]
+    F --> G[Georeference & load result<br/>into AI Results group]
+
+%% Tips:
+%% - Extend PREPARE (A–D) for new inputs (controls, masks, metadata).
+%% - Add payload/API flags in D/E for quality or feature toggles.
+%% - Insert post-processing before G for validation or styling.

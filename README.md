@@ -34,6 +34,12 @@ The full matrix of embeded parameters is in [`docs/flux_models.md`](docs/flux_mo
 [FLUX 1.1 Ultra](https://docs.bfl.ai/flux/flux_pro#flux-11-ultra) for further details.
 
 
+## How it works (flow)
+
+Rendered flowchart: ![FLUX AI Processing flow](docs/plugin_flow.png)
+
+Source mermaid for edits lives in `docs/plugin_flow.mmd` (render to SVG/PNG before updating the link).
+
 ## Quickstart
 
 1. **Install the plugin**
