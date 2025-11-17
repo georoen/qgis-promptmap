@@ -54,7 +54,7 @@ After a few seconds of processing, the layer loads automatically under an “AI 
 
 
 ## Troubleshooting
-
+- **Hallucinations** – make sure your prompt matches the input image. Don't ask for blue water bodies (default) if there is no water visible.
 - **401 / API errors** – make sure your key is valid and you have enough credits.
 - **Timeout / Failed** – rerun later or reduce the tile size. Check the generated log in
   your output directory.
