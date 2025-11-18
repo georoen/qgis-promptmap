@@ -1,5 +1,6 @@
 import os
 from math import gcd
+from datetime import datetime
 from typing import Dict, Any
 
 from qgis.core import (
@@ -9,12 +10,22 @@ from qgis.core import (
     QgsProcessingParameterEnum,
     QgsProcessingParameterFolderDestination,
     QgsProcessingParameterDefinition,
+    QgsProcessingParameterBoolean,
+    QgsProcessingParameterVectorDestination,
     QgsProcessingContext,
     QgsProcessingFeedback,
     QgsProcessingException,
     QgsRasterLayer,
     QgsRectangle,
+    QgsVectorLayer,
+    QgsProject,
+    QgsFields,
+    QgsField,
+    QgsFeature,
+    QgsGeometry,
+    QgsVectorFileWriter,
 )
+from qgis.PyQt.QtCore import QVariant
 from qgis.utils import iface
 
 from .remote_ai_engine import RemoteAiEngine
@@ -37,6 +48,9 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
     TILE_SIZE = "TILE_SIZE"
     OUTPUT_DIR = "OUTPUT_DIR"
     SEED = "SEED"
+    SAVE_TIFF = "SAVE_TIFF"
+    SAVE_FOOTPRINT = "SAVE_FOOTPRINT"
+    FOOTPRINT_PATH = "FOOTPRINT_PATH"
 
     TILE_SIZE_CHOICES = [
         ("512×512 (1:1)", (512, 512)),
@@ -114,6 +128,27 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
         self._mark_advanced(seed_param)
         self.addParameter(seed_param)
 
+        save_tiff_param = QgsProcessingParameterBoolean(
+            self.SAVE_TIFF,
+            "Also save GeoTIFF to disk",
+            defaultValue=False
+        )
+        self.addParameter(save_tiff_param)
+
+        save_fp_param = QgsProcessingParameterBoolean(
+            self.SAVE_FOOTPRINT,
+            "Save footprint as GeoPackage polygon",
+            defaultValue=False
+        )
+        self.addParameter(save_fp_param)
+
+        fp_path_param = QgsProcessingParameterVectorDestination(
+            self.FOOTPRINT_PATH,
+            "Footprint output (GPKG)",
+            optional=True
+        )
+        self.addParameter(fp_path_param)
+
     def processAlgorithm(self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback):
         """Orchestrates the PREPARE -> PROCESS -> INTEGRATE workflow."""
         
@@ -127,6 +162,9 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
         tile_size_idx = self.parameterAsEnum(parameters, self.TILE_SIZE, context)
         output_dir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
         seed = self.parameterAsInt(parameters, self.SEED, context) if parameters.get(self.SEED) is not None else None
+        save_tiff = self.parameterAsBoolean(parameters, self.SAVE_TIFF, context)
+        save_fp = self.parameterAsBoolean(parameters, self.SAVE_FOOTPRINT, context)
+        fp_path_param = self.parameterAsOutputLayer(parameters, self.FOOTPRINT_PATH, context)
         use_canvas_aspect = tile_size_idx == len(self.TILE_SIZE_CHOICES)
         image_format = "PNG"
 
@@ -181,7 +219,11 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
             payload = {}
         if "aspect_ratio" not in payload:
             payload["aspect_ratio"] = aspect_ratio
+        prompt_value = payload.get("prompt", "")
         output_path = os.path.join(output_dir, filename)
+        footprint_path = fp_path_param
+        if save_fp and not footprint_path:
+            footprint_path = os.path.join(output_dir, f"{self.name()}_footprint.gpkg")
 
         feedback.pushInfo(f"Processing tile -> {filename}")
         if feedback.isCanceled():
@@ -201,15 +243,46 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
 
         # --- INTEGRATE Phase ---
 
+        outputs = {"OUTPUT_DIR": output_dir}
         if result["status"] == "Ready":
             feedback.pushInfo(f"✓ Tile successfully processed: {os.path.basename(output_path)}")
-            self.load_result_into_qgis(result["output_path"], render_extent, crs, feedback)
+            raster_to_load = result["output_path"]
+            if save_tiff:
+                tiff_path = self._convert_to_geotiff(result["output_path"], feedback)
+                if tiff_path:
+                    outputs["OUTPUT_RASTER"] = tiff_path
+                    raster_to_load = tiff_path
+                    feedback.pushInfo(f"GeoTIFF saved: {tiff_path}")
+                else:
+                    feedback.pushWarning("GeoTIFF requested but could not be created; keeping PNG.")
+            self.load_result_into_qgis(raster_to_load, render_extent, crs, feedback)
+
+            if save_fp:
+                fp_saved = self._save_footprint_gpkg(
+                    footprint_path,
+                    render_extent,
+                    crs,
+                    prompt_value,
+                    tile_width,
+                    tile_height,
+                    aspect_ratio,
+                    seed,
+                    raster_to_load,
+                    output_dir,
+                    current_scale
+                )
+                if fp_saved:
+                    outputs["OUTPUT_FOOTPRINT"] = fp_saved
+                    feedback.pushInfo(f"Footprint saved: {fp_saved}")
+                    self._load_vector_layer(fp_saved, feedback)
+                else:
+                    feedback.pushWarning("Footprint requested but could not be created.")
         else:
             feedback.reportError(f"Processing failed: {result.get('reason', 'Unknown error')}", fatalError=True)
             return {}
         
         feedback.pushInfo(f"🎉 Processing complete. Log file: {log_path}")
-        return {"OUTPUT_DIR": output_dir}
+        return outputs
 
     def _extent_with_aspect_ratio(self, extent: QgsRectangle, desired_ratio: float) -> QgsRectangle:
         """Crops the current extent to match the desired width/height ratio."""
@@ -290,6 +363,108 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
         except Exception as e:
             feedback.pushWarning(f"Failed to auto-load layer: {e}")
             feedback.pushInfo(f"You can manually load the result from: {image_path}")
+
+    def _convert_to_geotiff(self, input_path: str, feedback: QgsProcessingFeedback) -> str:
+        """Converts the PNG (with worldfile) to GeoTIFF if GDAL is available."""
+        try:
+            from osgeo import gdal  # type: ignore
+        except Exception:
+            feedback.pushWarning("GDAL not available; cannot write GeoTIFF.")
+            return ""
+
+        try:
+            base, _ = os.path.splitext(input_path)
+            tiff_path = f"{base}.tif"
+            ds = gdal.Open(input_path)
+            if not ds:
+                feedback.pushWarning(f"Could not open {input_path} for GeoTIFF conversion.")
+                return ""
+            translate_options = gdal.TranslateOptions(format="GTiff")
+            gdal.Translate(tiff_path, ds, options=translate_options)
+            return tiff_path
+        except Exception as e:
+            feedback.pushWarning(f"GeoTIFF conversion failed: {e}")
+            return ""
+
+    def _save_footprint_gpkg(
+        self,
+        footprint_path: str,
+        extent: QgsRectangle,
+        crs: Any,
+        prompt: str,
+        tile_width: int,
+        tile_height: int,
+        aspect_ratio: str,
+        seed: Any,
+        output_raster_path: str,
+        output_dir: str,
+        scale: Any,
+    ) -> str:
+        """Writes the render extent as a polygon GPKG with processing metadata."""
+        try:
+            fields = QgsFields()
+            fields.append(QgsField("prompt", QVariant.String))
+            fields.append(QgsField("timestamp", QVariant.String))
+            fields.append(QgsField("tile_w", QVariant.Int))
+            fields.append(QgsField("tile_h", QVariant.Int))
+            fields.append(QgsField("aspect", QVariant.String))
+            fields.append(QgsField("seed", QVariant.Int))
+            fields.append(QgsField("model", QVariant.String))
+            fields.append(QgsField("output", QVariant.String))
+            fields.append(QgsField("output_dir", QVariant.String))
+            fields.append(QgsField("scale", QVariant.Double))
+
+            mem = QgsVectorLayer(f"Polygon?crs={crs.toWkt()}", "footprint", "memory")
+            prov = mem.dataProvider()
+            prov.addAttributes(fields)
+            mem.updateFields()
+
+            feat = QgsFeature()
+            feat.setGeometry(QgsGeometry.fromRect(extent))
+            feat.setAttributes([
+                prompt,
+                datetime.utcnow().isoformat(),
+                tile_width,
+                tile_height,
+                aspect_ratio,
+                seed if seed is not None else 0,
+                self.api_config.id,
+                output_raster_path,
+                output_dir,
+                float(scale) if scale else 0.0,
+            ])
+            prov.addFeature(feat)
+            mem.updateExtents()
+
+            err, _ = QgsVectorFileWriter.writeAsVectorFormat(
+                mem, footprint_path, "UTF-8", crs, "GPKG"
+            )
+            if err != QgsVectorFileWriter.NoError:
+                return ""
+            return footprint_path
+        except Exception:
+            return ""
+
+    def _load_vector_layer(self, gpkg_path: str, feedback: QgsProcessingFeedback):
+        """Loads the generated GPKG footprint into the AI Results group."""
+        try:
+            if not gpkg_path or not os.path.exists(gpkg_path):
+                feedback.pushWarning("Footprint path missing; cannot load footprint.")
+                return
+            layer = QgsVectorLayer(gpkg_path, "AI Result Footprint", "ogr")
+            if not layer.isValid():
+                feedback.pushWarning(f"Footprint layer invalid: {gpkg_path}")
+                return
+            project = QgsProject.instance()
+            root = project.layerTreeRoot()
+            ai_group = root.findGroup("AI Results")
+            if not ai_group:
+                ai_group = root.insertGroup(0, "AI Results")
+            project.addMapLayer(layer, False)
+            ai_group.addLayer(layer)
+            feedback.pushInfo("Footprint layer loaded to AI Results group.")
+        except Exception as e:
+            feedback.pushWarning(f"Could not load footprint layer: {e}")
 
     def get_api_specifics(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> (str, Dict[str, Any]):
         """
