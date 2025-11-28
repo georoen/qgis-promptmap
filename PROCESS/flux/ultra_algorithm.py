@@ -6,8 +6,8 @@ from qgis.core import (
     QgsProcessingContext,
     QgsProcessingException,
 )
-from .flux_base_algorithm import BaseAiAlgorithm
-from .flux_api_config import FLUX_ULTRA_CONFIG, ApiConfig
+from ...flux_base_algorithm import BaseAiAlgorithm
+from .config import FLUX_ULTRA_CONFIG, ApiConfig
 
 
 class FluxStylizeAlgorithm(BaseAiAlgorithm):

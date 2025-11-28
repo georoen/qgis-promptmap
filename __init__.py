@@ -1,6 +1,6 @@
 from qgis.core import QgsProcessingProvider, QgsApplication
-from .flux_ultra_algorithm import FluxStylizeAlgorithm
-from .flux_kontext_algorithm import FluxKontextAlgorithm
+from .PROCESS.flux.ultra_algorithm import FluxStylizeAlgorithm
+from .PROCESS.flux.kontext_algorithm import FluxKontextAlgorithm
 
 
 class FluxProvider(QgsProcessingProvider):

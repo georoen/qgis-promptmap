@@ -5,8 +5,8 @@ from qgis.core import (
     QgsProcessingContext,
     QgsProcessingException,
 )
-from .flux_base_algorithm import BaseAiAlgorithm
-from .flux_api_config import FLUX_KONTEXT_CONFIG, ApiConfig
+from ...flux_base_algorithm import BaseAiAlgorithm
+from .config import FLUX_KONTEXT_CONFIG, ApiConfig
 
 
 class FluxKontextAlgorithm(BaseAiAlgorithm):
