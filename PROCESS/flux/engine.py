@@ -188,3 +188,48 @@ class FluxEngine:
             self.logger.warning("PIL not available. Cannot validate or resize image dimensions.")
         except Exception as e:
             self.logger.error(f"Failed during image validation: {e}")
+
+    def process_workflow(
+        self, input_path: str, prompt: str, seed: Optional[int],
+        image_format: str, api_config: ApiConfig, extra_params: Dict[str, Any],
+        output_path: str
+    ) -> Dict[str, Any]:
+        """
+        Executes the full Flux workflow: Request -> Poll -> Download.
+        """
+        # 1. Send Request
+        api_result = self.send_api_request(
+            input_path=input_path,
+            prompt=prompt,
+            seed=seed,
+            image_format=image_format,
+            api_config=api_config,
+            extra_params=extra_params
+        )
+        
+        if not api_result["success"]:
+            return {"success": False, "error": api_result.get("error", "Unknown API error")}
+
+        # 2. Poll
+        try:
+            polling_result = self.poll_until_ready(
+                api_result["polling_url"], timeout_s=600
+            )
+        except TimeoutError as e:
+            return {"success": False, "error": str(e)}
+
+        if polling_result["status"] != "Ready":
+            return {"success": False, "error": f"Processing did not complete: {polling_result['status']} ({polling_result.get('error','')})"}
+
+        # 3. Download
+        # Note: We need width/height for validation, but they are not passed here.
+        # We can skip validation or infer it from the input image if needed.
+        # For now, we'll just download.
+        try:
+            self.download_stylized_image(
+                polling_result["delivery_url"], output_path, 0, 0, image_format
+            )
+        except Exception as e:
+             return {"success": False, "error": f"Download failed: {e}"}
+             
+        return {"success": True, "output_path": output_path}

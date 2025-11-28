@@ -77,12 +77,16 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
         # Prevent threading issues with QGIS canvas rendering
         return super().flags() | QgsProcessingAlgorithm.FlagNoThreading
 
+    def get_engine(self, api_key: str, log_path: str):
+        """Returns the engine instance for this algorithm. Defaults to FluxEngine."""
+        return FluxEngine(api_key=api_key, log_path=log_path)
+
     def initAlgorithm(self, config=None):
         """Initializes the common UI parameters."""
         self.addParameter(
             QgsProcessingParameterString(
                 self.API_KEY,
-                "FLUX API Key",
+                "API Key",
                 defaultValue="",
                 optional=False
             )
@@ -204,7 +208,7 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
         # --- PROCESS Phase ---
 
         log_path = os.path.join(output_dir, f"{self.name()}.log")
-        engine = FluxEngine(api_key=api_key, log_path=log_path)
+        engine = self.get_engine(api_key=api_key, log_path=log_path)
 
         # Subclass provides the specific payload and file naming
         filename, payload = self.get_api_specifics(parameters, context)
@@ -226,33 +230,24 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
             # 1. Render Map
             input_png_path = render_map_tile(extent_tuple, tile_width, tile_height, output_path)
             
-            # 2. Send Request
-            api_result = engine.send_api_request(
+            # 2. Execute Workflow (Engine specific)
+            # Note: prompt is popped from payload to avoid duplication if engine handles it separately
+            prompt_for_engine = payload.pop("prompt") if "prompt" in payload else prompt_value
+            
+            workflow_result = engine.process_workflow(
                 input_path=input_png_path,
-                prompt=payload.pop("prompt"),
+                prompt=prompt_for_engine,
                 seed=seed,
                 image_format=image_format,
                 api_config=self.api_config,
-                extra_params=payload
+                extra_params=payload,
+                output_path=output_path
             )
             
-            if not api_result["success"]:
-                raise RuntimeError(api_result.get("error", "Unknown API error"))
+            if not workflow_result["success"]:
+                raise RuntimeError(workflow_result.get("error", "Unknown Engine error"))
 
-            # 3. Poll
-            polling_result = engine.poll_until_ready(
-                api_result["polling_url"], timeout_s=600
-            )
-
-            if polling_result["status"] != "Ready":
-                raise RuntimeError(f"Processing did not complete: {polling_result['status']} ({polling_result.get('error','')})")
-
-            # 4. Download
-            engine.download_stylized_image(
-                polling_result["delivery_url"], output_path, tile_width, tile_height, image_format
-            )
-
-            # 5. Georeference
+            # 3. Georeference
             write_worldfile(output_path, extent_tuple, tile_width, tile_height, image_format)
             
             result_status = "Ready"

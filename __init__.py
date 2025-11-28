@@ -1,6 +1,7 @@
 from qgis.core import QgsProcessingProvider, QgsApplication
 from .PROCESS.flux.ultra_algorithm import FluxStylizeAlgorithm
 from .PROCESS.flux.kontext_algorithm import FluxKontextAlgorithm
+from .PROCESS.gemini.algorithm import GeminiImageAlgorithm
 
 
 class FluxProvider(QgsProcessingProvider):
@@ -18,6 +19,7 @@ class FluxProvider(QgsProcessingProvider):
     def loadAlgorithms(self):
         self.addAlgorithm(FluxStylizeAlgorithm())
         self.addAlgorithm(FluxKontextAlgorithm())
+        self.addAlgorithm(GeminiImageAlgorithm())
 
 
 def classFactory(iface):
