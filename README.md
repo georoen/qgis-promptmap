@@ -34,6 +34,12 @@ The full matrix of embeded parameters is in [`docs/flux_models.md`](docs/flux_mo
 [FLUX 1.1 Ultra](https://docs.bfl.ai/flux/flux_pro#flux-11-ultra) for further details.
 
 
+## How it works (flow)
+
+Rendered flowchart: ![FLUX AI Processing flow](docs/plugin_flow.png)
+
+Source mermaid for edits lives in `docs/plugin_flow.mmd` (render to SVG/PNG before updating the link).
+
 ## Quickstart
 
 1. **Install the plugin**
@@ -54,7 +60,7 @@ After a few seconds of processing, the layer loads automatically under an “AI 
 
 
 ## Troubleshooting
-
+- **Hallucinations** – make sure your prompt matches the input image. Don't ask for blue water bodies (default) if there is no water visible.
 - **401 / API errors** – make sure your key is valid and you have enough credits.
 - **Timeout / Failed** – rerun later or reduce the tile size. Check the generated log in
   your output directory.

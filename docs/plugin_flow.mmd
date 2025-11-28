@@ -1,0 +1,31 @@
+flowchart TD
+    subgraph PREPARE [PREPARE - BaseAiAlgorithm.processAlgorithm]
+        A[Run Processing<br/>dialog accept] --> B[Capture canvas<br/>extent + CRS + scale<br/>iface mapCanvas]
+        B -->|Warn if scale > 1:5000| Bwarn[Feedback warning]
+        B --> C[Compute tile size + aspect<br/>extent with aspect ratio]
+        C --> D[Build payload + filenames<br/>get api specifics<br/>+ aspect ratio]
+    end
+
+    subgraph PROCESS [PROCESS - RemoteAiEngine.process_tile]
+        D --> E[Render map tile<br/>PNG input + worldfile anchors]
+        E --> F[Send API request<br/>POST to FLUX API]
+        F --> G[Poll until ready<br/>status Ready/Failed]
+        G --> H[Download stylized image<br/>write PNG]
+        H --> I[Write worldfile]
+    end
+
+    subgraph INTEGRATE [INTEGRATE - BaseAiAlgorithm]
+        I --> J{Save GeoTIFF?}
+        J -->|Yes| J1[Convert to GeoTIFF]
+        J -->|No| J2[Keep PNG]
+        J1 --> K
+        J2 --> K
+        K[Load result into QGIS<br/>AI Results group] --> L{Save footprint GPKG?}
+        L -->|Yes| L1[Save footprint GPKG<br/>then load vector layer]
+        L -->|No| L2[Done]
+    end
+
+%% Tips:
+%% - Add UI params in PREPARE (tile, prompt, outputs).
+%% - Add model flags in PROCESS payload building.
+%% - Add post-processing before INTEGRATE load if needed.
