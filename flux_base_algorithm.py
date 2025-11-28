@@ -248,7 +248,20 @@ class BaseAiAlgorithm(QgsProcessingAlgorithm):
                 raise RuntimeError(workflow_result.get("error", "Unknown Engine error"))
 
             # 3. Georeference
-            write_worldfile(output_path, extent_tuple, tile_width, tile_height, image_format)
+            # Check actual image dimensions to ensure correct pixel size if upscaled
+            actual_width, actual_height = tile_width, tile_height
+            try:
+                from PIL import Image
+                with Image.open(output_path) as img:
+                    actual_width, actual_height = img.size
+                    if actual_width != tile_width or actual_height != tile_height:
+                        feedback.pushInfo(f"Image dimensions changed from {tile_width}x{tile_height} to {actual_width}x{actual_height}. Adjusting georeferencing.")
+            except ImportError:
+                feedback.pushWarning("PIL not available. Assuming image dimensions match input.")
+            except Exception as e:
+                feedback.pushWarning(f"Could not verify image dimensions: {e}")
+
+            write_worldfile(output_path, extent_tuple, actual_width, actual_height, image_format)
             
             result_status = "Ready"
 
