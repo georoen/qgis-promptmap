@@ -32,7 +32,7 @@ PNG is enforced throughout so transparency and georeferencing remain predictable
 
   ```bash
   rm -rf ~/Library/Application\ Support/QGIS/QGIS3/profiles/default/python/plugins/qgis_flux/
-  cp -r /Users/jstaab/Desktop/qgis_flux \
+  cp -r $PWD \
     ~/Library/Application\ Support/QGIS/QGIS3/profiles/default/python/plugins/
   ```
   Then restart QGIS.

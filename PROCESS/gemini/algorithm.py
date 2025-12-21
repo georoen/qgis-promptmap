@@ -4,7 +4,7 @@ from qgis.core import (
     QgsProcessingContext,
     QgsProcessingException,
 )
-from ...flux_base_algorithm import BaseAiAlgorithm
+from ...base_ai_algorithm import BaseAiAlgorithm
 from .config import GEMINI_3_IMAGE_CONFIG, ApiConfig
 from .engine import GeminiEngine
 
@@ -29,6 +29,12 @@ class GeminiImageAlgorithm(BaseAiAlgorithm):
 
     def shortHelpString(self):
         return self.api_config.short_help
+
+    def group(self):
+        return "Gemini AI Processing"
+
+    def groupId(self):
+        return "gemini_ai"
 
     def initAlgorithm(self, config=None):
         super().initAlgorithm(config)

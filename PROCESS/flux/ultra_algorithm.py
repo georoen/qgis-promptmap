@@ -6,7 +6,7 @@ from qgis.core import (
     QgsProcessingContext,
     QgsProcessingException,
 )
-from ...flux_base_algorithm import BaseAiAlgorithm
+from ...base_ai_algorithm import BaseAiAlgorithm
 from .config import FLUX_ULTRA_CONFIG, ApiConfig
 
 
