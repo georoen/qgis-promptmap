@@ -1,45 +1,8 @@
-from qgis.core import QgsProcessingProvider, QgsApplication
-from .PROCESS.flux.ultra_algorithm import FluxStylizeAlgorithm
-from .PROCESS.flux.kontext_algorithm import FluxKontextAlgorithm
-from .PROCESS.gemini.algorithm import GeminiImageAlgorithm
-
-
-class FluxProvider(QgsProcessingProvider):
-    """FLUX processing provider for QGIS."""
-
-    def id(self):
-        return "flux"
-
-    def name(self):
-        return "AI Toolbox"
-
-    def icon(self):
-        return QgsApplication.getThemeIcon("/mActionRasterize.svg")
-
-    def loadAlgorithms(self):
-        self.addAlgorithm(FluxStylizeAlgorithm())
-        self.addAlgorithm(FluxKontextAlgorithm())
-        self.addAlgorithm(GeminiImageAlgorithm())
-
+"""
+QGIS FLUX AI Toolbox.
+"""
 
 def classFactory(iface):
+    """Load the plugin class. This is the entry point for QGIS plugins."""
+    from .plugin import FluxPlugin
     return FluxPlugin(iface)
-
-
-class FluxPlugin:
-    """Main plugin class."""
-
-    def __init__(self, iface):
-        self.iface = iface
-        self.provider = None
-
-    def initProcessing(self):
-        self.provider = FluxProvider()
-        QgsApplication.processingRegistry().addProvider(self.provider)
-
-    def initGui(self):
-        self.initProcessing()
-
-    def unload(self):
-        if self.provider:
-            QgsApplication.processingRegistry().removeProvider(self.provider)

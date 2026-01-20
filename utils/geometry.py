@@ -1,8 +1,14 @@
+"""
+Geometry utilities for QGIS FLUX.
+"""
+
 from math import gcd
 from qgis.core import QgsRectangle
 
 def extent_with_aspect_ratio(extent: QgsRectangle, desired_ratio: float) -> QgsRectangle:
-    """Crops the current extent to match the desired width/height ratio."""
+    """
+    Crops the current extent to match the desired width/height ratio.
+    """
     if desired_ratio <= 0:
         return extent
 
@@ -18,21 +24,20 @@ def extent_with_aspect_ratio(extent: QgsRectangle, desired_ratio: float) -> QgsR
         # Requested aspect is wider than the current view -> crop vertically
         new_width = w
         new_height = min(h, w / desired_ratio)
-        if new_height <= 0:
-            new_height = h
     else:
         # Requested aspect is taller -> crop horizontally
         new_height = h
         new_width = min(w, h * desired_ratio)
-        if new_width <= 0:
-            new_width = w
 
     half_w = new_width / 2
     half_h = new_height / 2
     return QgsRectangle(cx - half_w, cy - half_h, cx + half_w, cy + half_h)
 
+
 def format_aspect_ratio(width: int, height: int) -> str:
-    """Returns a simplified aspect ratio string (e.g., '16:9')."""
+    """
+    Returns a simplified aspect ratio string (e.g., '16:9').
+    """
     if width <= 0 or height <= 0:
         return "1:1"
     ratio_gcd = gcd(width, height)
