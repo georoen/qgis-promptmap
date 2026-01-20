@@ -21,7 +21,7 @@ from qgis.core import (
 from qgis.utils import iface
 from PyQt5.QtCore import QSize, Qt
 
-from utils import extent_with_aspect_ratio, format_aspect_ratio, write_worldfile
+from ..utils import extent_with_aspect_ratio, format_aspect_ratio, write_worldfile
 
 class BaseAIAlgorithm(QgsProcessingAlgorithm):
     """Base class for AI processing algorithms."""
@@ -78,9 +78,15 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         feedback.pushInfo(f"Rendering size: {target_w}x{target_h} ({aspect_ratio_str})")
 
         # 3. Render Map
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
         input_path = os.path.join(output_dir, f"{self.name()}_input.png")
         self._render_map(render_extent, target_w, target_h, input_path)
         
+        if not os.path.exists(input_path):
+            raise QgsProcessingException(f"Failed to render input map to {input_path}")
+
         if feedback.isCanceled(): return {}
 
         # 4. Execute Subclass Logic (API Call)
@@ -120,7 +126,8 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         job = QgsMapRendererParallelJob(settings)
         job.start()
         job.waitForFinished()
-        job.renderedImage().save(path, "PNG")
+        if not job.renderedImage().save(path, "PNG"):
+            raise QgsProcessingException(f"Failed to save rendered image to {path}")
 
     def _load_layer(self, path, crs, feedback):
         layer = QgsRasterLayer(path, f"{self.displayName()} Result", "gdal")
