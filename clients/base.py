@@ -31,7 +31,7 @@ from qgis import processing
 from qgis.utils import iface
 from PyQt5.QtCore import QSize, Qt, QVariant
 
-from ..utils import extent_with_aspect_ratio, format_aspect_ratio, write_worldfile
+from ..utils import extent_with_aspect_ratio, format_aspect_ratio, write_worldfile, write_metadata_gpkg
 
 class BaseAIAlgorithm(QgsProcessingAlgorithm):
     """Base class for AI processing algorithms."""
@@ -139,7 +139,7 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         }
         
         try:
-            gpkg_path = self._export_metadata_gpkg(output_path, render_extent, crs, metadata)
+            gpkg_path = write_metadata_gpkg(output_path, render_extent, crs, metadata)
             self._load_vector_layer(gpkg_path, crs, feedback)
         except Exception as e:
             feedback.reportError(f"Metadata export failed: {e}")
@@ -150,43 +150,7 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         """Subclasses must implement this."""
         raise NotImplementedError
 
-    def _export_metadata_gpkg(self, image_path, extent, crs, metadata):
-        gpkg_path = os.path.splitext(image_path)[0] + ".gpkg"
-        
-        # 1. Define Fields
-        fields = QgsFields()
-        for key in metadata.keys():
-            fields.append(QgsField(key, QVariant.String))
-            
-        # 2. Initialize Writer
-        save_options = QgsVectorFileWriter.SaveVectorOptions()
-        save_options.driverName = "GPKG"
-        save_options.layerName = "metadata"
-        
-        writer = QgsVectorFileWriter.create(
-            gpkg_path,
-            fields,
-            QgsWkbTypes.Polygon,
-            crs,
-            QgsCoordinateTransformContext(),
-            save_options
-        )
-        
-        if writer.hasError() != QgsVectorFileWriter.NoError:
-            raise QgsProcessingException(f"Failed to create GPKG: {writer.errorMessage()}")
-            
-        # 3. Add Feature
-        feat = QgsFeature()
-        feat.setGeometry(QgsGeometry.fromRect(extent))
-        
-        # Ensure attributes match fields order
-        attrs = [str(metadata.get(field.name(), "")) for field in fields]
-        feat.setAttributes(attrs)
-        
-        writer.addFeature(feat)
-        del writer # Explicitly delete to flush/close file
-        
-        return gpkg_path
+
 
     def _render_map(self, extent, width, height, path):
         settings = QgsMapSettings()
