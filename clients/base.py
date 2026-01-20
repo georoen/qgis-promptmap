@@ -124,11 +124,13 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         # 6. Georeference
         feedback.pushInfo(f"Georeferencing image...")
 
-        # Write worldfile
-        write_worldfile(output_path, (render_extent.xMinimum(), render_extent.yMinimum(), render_extent.xMaximum(), render_extent.yMaximum()), target_w, target_h)
+        # Create GeoTIFF instead of Worldfile
+        # Note: We use render_extent because the AI output covers the same geographic area 
+        # as the input, even if the pixel resolution (e.g. 2048x2048 vs 512x512) changes.
+        geotiff_path = create_geotiff(output_path, render_extent, crs)
         
         # Load Raster Layer
-        self._load_raster_layer(output_path, crs, feedback)
+        self._load_raster_layer(geotiff_path, crs, feedback)
         
         # 7. Export & Load Metadata (GPKG)
         metadata = {
@@ -139,12 +141,12 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         }
         
         try:
-            gpkg_path = write_metadata_gpkg(output_path, render_extent, crs, metadata)
+            gpkg_path = write_metadata_gpkg(geotiff_path, render_extent, crs, metadata)
             self._load_vector_layer(gpkg_path, crs, feedback)
         except Exception as e:
             feedback.reportError(f"Metadata export failed: {e}")
             
-        return {"OUTPUT": output_path}
+        return {"OUTPUT": geotiff_path}
 
     def execute_api(self, api_key, input_path, prompt, aspect_ratio, parameters, context, feedback):
         """Subclasses must implement this."""
@@ -248,34 +250,29 @@ def format_aspect_ratio(width: int, height: int) -> str:
     return f"{normalized_w}:{normalized_h}"
 
 
-def write_worldfile(image_path: str, extent: Tuple[float, float, float, float], width: int, height: int):
+def create_geotiff(image_path: str, extent: QgsRectangle, crs: QgsCoordinateReferenceSystem) -> str:
     """
-    Writes a georeferencing world file (.pgw) for the given image.
-    Essential for QGIS to know where to place the returned image.
+    Converts the image to a GeoTIFF with the specified extent and CRS.
     """
-    xmin, ymin, xmax, ymax = extent
+    from osgeo import gdal
     
-    # Calculate pixel size
-    # Note: Y pixel size is negative because images start from top-left
-    x_pixel_size = (xmax - xmin) / width
-    y_pixel_size = -((ymax - ymin) / height)
+    geotiff_path = os.path.splitext(image_path)[0] + ".tif"
     
-    # Calculate center of top-left pixel
-    top_left_x = xmin + x_pixel_size / 2
-    top_left_y = ymax + y_pixel_size / 2
+    # Use gdal.Translate with -a_ullr to assign bounds and -a_srs for CRS
+    ds = gdal.Translate(
+        geotiff_path,
+        image_path,
+        format='GTiff',
+        outputSRS=crs.toWkt(),
+        options=f"-a_ullr {extent.xMinimum()} {extent.yMaximum()} {extent.xMaximum()} {extent.yMinimum()}"
+    )
     
-    # Determine extension (.pgw for PNG)
-    worldfile_path = os.path.splitext(image_path)[0] + ".pgw"
+    if ds is None:
+        raise Exception(f"Failed to create GeoTIFF at {geotiff_path}")
+        
+    ds = None # Explicitly close dataset
     
-    with open(worldfile_path, 'w') as wf:
-        # Format:
-        # X pixel size
-        # Rotation (0)
-        # Rotation (0)
-        # Y pixel size
-        # X coordinate of upper-left pixel center
-        # Y coordinate of upper-left pixel center
-        wf.write(f"{x_pixel_size}\n0.0\n0.0\n{y_pixel_size}\n{top_left_x}\n{top_left_y}\n")
+    return geotiff_path
 
 
 def write_metadata_gpkg(output_path: str, extent: QgsRectangle, crs, metadata: dict) -> str:
