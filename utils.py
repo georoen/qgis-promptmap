@@ -6,7 +6,17 @@ Contains only critical geometry and georeferencing logic.
 import os
 from math import gcd
 from typing import Tuple
-from qgis.core import QgsRectangle
+from qgis.core import (
+    QgsRectangle,
+    QgsVectorFileWriter,
+    QgsVectorLayer,
+    QgsFeature,
+    QgsGeometry,
+    QgsFields,
+    QgsField,
+    QgsCoordinateTransformContext
+)
+from PyQt5.QtCore import QVariant
 
 def extent_with_aspect_ratio(extent: QgsRectangle, desired_ratio: float) -> QgsRectangle:
     """
@@ -81,3 +91,85 @@ def write_worldfile(image_path: str, extent: Tuple[float, float, float, float], 
         # X coordinate of upper-left pixel center
         # Y coordinate of upper-left pixel center
         wf.write(f"{x_pixel_size}\n0.0\n0.0\n{y_pixel_size}\n{top_left_x}\n{top_left_y}\n")
+
+
+def write_metadata_gpkg(output_path: str, extent: QgsRectangle, crs, metadata: dict) -> str:
+    """
+    Writes a GPKG containing a vector layer with the extent and metadata.
+    """
+    gpkg_path = os.path.splitext(output_path)[0] + ".gpkg"
+    
+    # Create fields
+    fields = QgsFields()
+    fields.append(QgsField("timestamp", QVariant.String))
+    fields.append(QgsField("model", QVariant.String))
+    fields.append(QgsField("prompt", QVariant.String))
+    
+    for k in metadata.keys():
+        if k not in ["timestamp", "model", "prompt"]:
+            fields.append(QgsField(k, QVariant.String))
+    
+    # Create memory layer
+    vl = QgsVectorLayer(f"Polygon?crs={crs.authid()}", "metadata", "memory")
+    if not vl.isValid():
+        raise Exception("Failed to create temporary memory layer for metadata.")
+        
+    pr = vl.dataProvider()
+    pr.addAttributes(fields)
+    vl.updateFields()
+    
+    # Create feature
+    feat = QgsFeature()
+    feat.setGeometry(QgsGeometry.fromRect(extent))
+    
+    attrs = [
+        str(metadata.get("timestamp", "")),
+        str(metadata.get("model", "")),
+        str(metadata.get("prompt", ""))
+    ]
+    for k in metadata.keys():
+        if k not in ["timestamp", "model", "prompt"]:
+            attrs.append(str(metadata.get(k, "")))
+            
+    feat.setAttributes(attrs)
+    pr.addFeatures([feat])
+    
+    # Write to GPKG
+    options = QgsVectorFileWriter.SaveVectorOptions()
+    options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
+    options.layerName = "metadata"
+    
+    error = None
+    error_msg = ""
+    
+    if hasattr(QgsVectorFileWriter, "writeAsVectorFormatV3"):
+        ret = QgsVectorFileWriter.writeAsVectorFormatV3(
+            vl,
+            gpkg_path,
+            QgsCoordinateTransformContext(),
+            options
+        )
+        # Handle return value which might be tuple or int
+        if isinstance(ret, tuple):
+            error = ret[0]
+            if len(ret) > 1:
+                error_msg = ret[1]
+        else:
+            error = ret
+    else:
+        ret = QgsVectorFileWriter.writeAsVectorFormat(
+            vl,
+            gpkg_path,
+            options
+        )
+        if isinstance(ret, tuple):
+            error = ret[0]
+            if len(ret) > 1:
+                error_msg = ret[1]
+        else:
+            error = ret
+            
+    if error != QgsVectorFileWriter.NoError:
+        raise Exception(f"Failed to write GPKG: {error_msg} (Error code: {error})")
+    
+    return gpkg_path
