@@ -31,9 +31,9 @@ PNG is enforced throughout so transparency and georeferencing remain predictable
    requires a live canvas.
 
   ```bash
-  rm -rf ~/Library/Application\ Support/QGIS/QGIS3/profiles/default/python/plugins/qgis_flux/
-  cp -r /Users/jstaab/Desktop/qgis_flux \
-    ~/Library/Application\ Support/QGIS/QGIS3/profiles/default/python/plugins/
+  QGIS_PLUGINS_DIR="$HOME/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/"
+  rm -rf "$QGIS_PLUGINS_DIR/qgis_flux/"
+  rsync -av --exclude='.*' "$PWD" "$QGIS_PLUGINS_DIR"
   ```
   Then restart QGIS.
 
