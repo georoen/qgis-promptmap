@@ -66,22 +66,22 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         crs = canvas.mapSettings().destinationCrs()
         target_w, target_h = self.TILE_OPTIONS[tile_idx][1], self.TILE_OPTIONS[tile_idx][2]
         
-        if target_w == 0:
+        if target_w == 0:  # Using "Map Canvas (Full Extent)"
             size = canvas.mapSettings().outputSize()
             target_w, target_h = size.width(), size.height()
             render_extent = extent
         else:
             ratio = target_w / target_h
-            render_extent = extent_with_aspect_ratio(extent, ratio)
+            render_extent = extent_with_aspect_ratio(extent, ratio)  # TODO: Explain why we do this
 
         aspect_ratio_str = format_aspect_ratio(target_w, target_h)
-        feedback.pushInfo(f"Rendering size: {target_w}x{target_h} ({aspect_ratio_str})")
+        feedback.pushInfo(f"Image geometry: {target_w}x{target_h} ({aspect_ratio_str})")
 
-        # 3. Render Map
+        # 3. Export Map Canvas to Image
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        input_path = os.path.join(output_dir, f"{self.name()}_input.png")
+        input_path = os.path.join(output_dir, f"{self.name()}_input.png") # TODO: Reduce filename to input.png only
         self._render_map(render_extent, target_w, target_h, input_path)
         
         if not os.path.exists(input_path):
@@ -95,9 +95,9 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         if not result["success"]:
             raise QgsProcessingException(result["error"])
 
-        # 5. Download/Save & Georeference
+        # 5. Download/Save generated result
         # The API method should return either a URL (for download) or raw data (for save)
-        output_path = os.path.join(output_dir, f"{self.name()}_{int(time.time())}.png")
+        output_path = os.path.join(output_dir, f"{self.name()}_{int(time.time())}.png") # TODO: Reduce filename to output.png only
         
         if "url" in result:
             if not self.download_result(result["url"], output_path):
@@ -105,11 +105,35 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         elif "data" in result:
             if not self.save_result(result["data"], output_path):
                 raise QgsProcessingException("Save failed.")
+            
+        if os.path.exists(output_path):
+            feedback.pushInfo(f"Saved generated image to {output_path}")
+        else:
+            raise QgsProcessingException(f"Failed to save result to {output_path}")
         
-        # Write worldfile & Load
+        # 6. Georeference
+        feedback.pushInfo(f"Georeferencing image...")
+
+        # Write worldfile
         write_worldfile(output_path, (render_extent.xMinimum(), render_extent.yMinimum(), render_extent.xMaximum(), render_extent.yMaximum()), target_w, target_h)
-        self._load_layer(output_path, crs, feedback)
         
+        # Load Raster Layer
+        self._load_raster_layer(output_path, crs, feedback)
+        
+        # 7. Export & Load Metadata (GPKG)
+        metadata = {
+            "timestamp": str(int(time.time())),
+            "model": self.displayName(),
+            "prompt": prompt,
+            "tile_size": self.TILE_OPTIONS[tile_idx][0]
+        }
+        
+        try:
+            gpkg_path = self._export_metadata_gpkg(output_path, render_extent, crs, metadata)
+            self._load_vector_layer(gpkg_path, crs, feedback)
+        except Exception as e:
+            feedback.reportError(f"Metadata export failed: {e}")
+            
         return {"OUTPUT": output_path}
 
     def execute_api(self, api_key, input_path, prompt, aspect_ratio, parameters, context, feedback):
@@ -129,7 +153,7 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         if not job.renderedImage().save(path, "PNG"):
             raise QgsProcessingException(f"Failed to save rendered image to {path}")
 
-    def _load_layer(self, path, crs, feedback):
+    def _load_raster_layer(self, path, crs, feedback):
         layer = QgsRasterLayer(path, f"{self.displayName()} Result", "gdal")
         if layer.isValid():
             layer.setCrs(crs)
