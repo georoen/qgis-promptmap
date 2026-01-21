@@ -2,38 +2,23 @@
 FLUX.1 Kontext [pro] Client.
 """
 
-import time
-import base64
-import logging
 from typing import Dict, Any, Optional
-
 from qgis.core import QgsProcessingParameterNumber
 from .base import BaseAIAlgorithm
+from .bfl_base import BFLAPIClient
 
-class Flux1KontextProAPIClient:
+class Flux1KontextProAPIClient(BFLAPIClient):
     """Handles communication with FLUX.1 Kontext [pro] API."""
     
     def __init__(self, api_key: str):
-        self.api_key = api_key
-        self.endpoint = "https://api.eu.bfl.ai/v1/flux-kontext-pro"
-        self.poll_endpoint = "https://api.eu.bfl.ai/v1/get_result"
-        self.logger = logging.getLogger("FluxKontext")
+        super().__init__(
+            api_key, 
+            "https://api.eu.bfl.ai/v1/flux-kontext-pro"
+        )
 
-    def process_image(self, input_path, prompt, safety, aspect_ratio, seed, feedback) -> Dict[str, Any]:
-        try: import requests
-        except ImportError: return {"success": False, "error": "Python 'requests' library not found."}
-
-        def log(msg):
-            if feedback: feedback.pushInfo(msg)
-
-        try:
-            with open(input_path, 'rb') as f:
-                image_data = base64.b64encode(f.read()).decode('ascii')
-        except Exception as e:
-            return {"success": False, "error": f"Failed to read input image: {e}"}
-
+    def process_image(self, image_b64, prompt, safety, aspect_ratio, seed, feedback) -> Dict[str, Any]:
         payload = {
-            'input_image': image_data,
+            'input_image': image_b64,
             'prompt': prompt,
             'safety_tolerance': safety,
             'aspect_ratio': aspect_ratio,
@@ -41,33 +26,7 @@ class Flux1KontextProAPIClient:
         }
         if seed is not None: payload['seed'] = seed
 
-        log("🚀 Sending request to FLUX API...")
-        try:
-            response = requests.post(self.endpoint, json=payload, headers={'x-key': self.api_key}, timeout=60)
-            response.raise_for_status()
-            result = response.json()
-            task_id = result.get("id")
-            polling_url = result.get("polling_url") or f"{self.poll_endpoint}?id={task_id}"
-            log(f"✅ Request accepted. Task ID: {task_id}")
-        except Exception as e:
-            return {"success": False, "error": f"API Request failed: {e}"}
-
-        log("⏳ Waiting for processing...")
-        start_time = time.time()
-        while time.time() - start_time < 600:
-            if feedback and feedback.isCanceled(): return {"success": False, "error": "Canceled."}
-            try:
-                poll_resp = requests.get(polling_url, headers={'x-key': self.api_key}, timeout=30)
-                poll_data = poll_resp.json()
-                status = poll_data.get("status")
-                if status == "Ready":
-                    log("✨ Processing complete!")
-                    return {"success": True, "url": poll_data["result"]["sample"]}
-                elif status == "Failed":
-                    return {"success": False, "error": f"API Error: {poll_data.get('message')}"}
-                time.sleep(1)
-            except Exception: time.sleep(2)
-        return {"success": False, "error": "Timeout."}
+        return self.post_and_poll(payload, feedback)
 
 
 class Flux1KontextProAlgorithm(BaseAIAlgorithm):
@@ -87,8 +46,11 @@ class Flux1KontextProAlgorithm(BaseAIAlgorithm):
         safety = self.parameterAsInt(parameters, self.SAFETY, context)
         seed = self.parameterAsInt(parameters, self.SEED, context) if parameters.get(self.SEED) else None
         
+        # Read image using base class helper
+        image_b64 = self.read_image_as_base64(input_path)
+        
         client = Flux1KontextProAPIClient(api_key)
-        return client.process_image(input_path, prompt, safety, aspect_ratio, seed, feedback)
+        return client.process_image(image_b64, prompt, safety, aspect_ratio, seed, feedback)
 
     def name(self): return "flux_kontext"
     def displayName(self): return "FLUX.1 Kontext [pro]"
