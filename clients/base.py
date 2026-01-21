@@ -158,6 +158,10 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         with open(path, 'rb') as f:
             return base64.b64encode(f.read()).decode('ascii')
 
+    def log(self, feedback, message: str):
+        """Logs a message to the feedback object if available."""
+        if feedback:
+            feedback.pushInfo(message)
 
     def _render_map(self, extent, width, height, path):
         settings = QgsMapSettings()
