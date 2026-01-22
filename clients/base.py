@@ -152,7 +152,16 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         """Subclasses must implement this."""
         raise NotImplementedError
 
+    def read_image_as_base64(self, path: str) -> str:
+        """Reads an image file and returns its base64 encoded string."""
+        import base64
+        with open(path, 'rb') as f:
+            return base64.b64encode(f.read()).decode('ascii')
 
+    def log(self, feedback, message: str):
+        """Logs a message to the feedback object if available."""
+        if feedback:
+            feedback.pushInfo(message)
 
     def _render_map(self, extent, width, height, path):
         settings = QgsMapSettings()

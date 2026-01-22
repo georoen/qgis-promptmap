@@ -2,7 +2,6 @@
 Gemini 3 Pro Image Client.
 """
 
-import base64
 import logging
 from typing import Dict, Any, Optional
 
@@ -15,18 +14,12 @@ class Gemini3ProImageAPIClient:
         self.api_key = api_key
         self.endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent"
 
-    def process_image(self, input_path, prompt, aspect_ratio, feedback) -> Dict[str, Any]:
+    def process_image(self, image_b64, prompt, aspect_ratio, feedback) -> Dict[str, Any]:
         try: import requests
         except ImportError: return {"success": False, "error": "Python 'requests' library not found."}
 
         def log(msg):
             if feedback: feedback.pushInfo(msg)
-
-        try:
-            with open(input_path, 'rb') as f:
-                image_data = base64.b64encode(f.read()).decode('ascii')
-        except Exception as e:
-            return {"success": False, "error": f"Failed to read input image: {e}"}
 
         payload = {
             "contents": [{
@@ -35,7 +28,7 @@ class Gemini3ProImageAPIClient:
                     {
                         "inlineData": {
                             "mimeType": "image/png",
-                            "data": image_data
+                            "data": image_b64
                         }
                     }
                 ]
@@ -81,8 +74,9 @@ class Gemini3ProImageAlgorithm(BaseAIAlgorithm):
     """Gemini 3 Pro Image Algorithm."""
     
     def execute_api(self, api_key, input_path, prompt, aspect_ratio, parameters, context, feedback):
+        image_b64 = self.read_image_as_base64(input_path)
         client = Gemini3ProImageAPIClient(api_key)
-        return client.process_image(input_path, prompt, aspect_ratio, feedback)
+        return client.process_image(image_b64, prompt, aspect_ratio, feedback)
 
     def name(self): return "gemini_3_image"
     def displayName(self): return "Gemini 3 Pro Image"
