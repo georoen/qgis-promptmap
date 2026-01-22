@@ -26,7 +26,7 @@ class Flux2APIClient(BFLAPIClient):
         endpoint = self.ENDPOINTS.get(model_idx, self.ENDPOINTS[0])
         super().__init__(api_key, endpoint)
 
-    def process_image(self, image_b64, prompt, safety, seed, ref_image_path, feedback) -> Dict[str, Any]:
+    def process_image(self, image_b64, prompt, safety, seed, feedback) -> Dict[str, Any]:
         payload = {
             'input_image': image_b64,
             'prompt': prompt,
@@ -37,16 +37,6 @@ class Flux2APIClient(BFLAPIClient):
         if seed is not None: 
             payload['seed'] = seed
             
-        if ref_image_path:
-            try:
-                with open(ref_image_path, 'rb') as f:
-                    import base64
-                    ref_b64 = base64.b64encode(f.read()).decode('ascii')
-                    payload['input_image_2'] = ref_b64
-                    if feedback: feedback.pushInfo(f"Added reference image: {ref_image_path}")
-            except Exception as e:
-                if feedback: feedback.reportError(f"Failed to read reference image: {e}")
-
         return self.post_and_poll(payload, feedback)
 
 
@@ -56,7 +46,6 @@ class Flux2EditingAlgorithm(BaseAIAlgorithm):
     MODEL = "MODEL"
     SAFETY = "SAFETY"
     SEED = "SEED"
-    REF_IMAGE = "REF_IMAGE"
     
     MODEL_OPTIONS = [
         "FLUX.2 [pro] (Balanced)",
@@ -80,22 +69,17 @@ class Flux2EditingAlgorithm(BaseAIAlgorithm):
         self.addParameter(QgsProcessingParameterNumber(
             self.SEED, "Seed", type=QgsProcessingParameterNumber.Integer, optional=True
         ))
-        
-        self.addParameter(QgsProcessingParameterFile(
-            self.REF_IMAGE, "Reference Image (Optional)", optional=True, behavior=QgsProcessingParameterFile.File, fileFilter="Images (*.png *.jpg *.jpeg)"
-        ))
 
     def execute_api(self, api_key, input_path, prompt, aspect_ratio, parameters, context, feedback):
         model_idx = self.parameterAsEnum(parameters, self.MODEL, context)
         safety = self.parameterAsInt(parameters, self.SAFETY, context)
         seed = self.parameterAsInt(parameters, self.SEED, context) if parameters.get(self.SEED) else None
-        ref_image_path = self.parameterAsString(parameters, self.REF_IMAGE, context)
         
         # Read main input image (map canvas)
         image_b64 = self.read_image_as_base64(input_path)
         
         client = Flux2APIClient(api_key, model_idx)
-        return client.process_image(image_b64, prompt, safety, seed, ref_image_path, feedback)
+        return client.process_image(image_b64, prompt, safety, seed, feedback)
 
     def name(self): return "flux_2_editing"
     def displayName(self): return "FLUX.2 Image Editing"
