@@ -27,7 +27,7 @@ class FluxProvider(QgsProcessingProvider):
         return 'flux_ai'
 
     def name(self):
-        return 'FLUX AI Toolbox'
+        return 'AI Toolbox'
 
     def icon(self):
         return QIcon(os.path.join(os.path.dirname(__file__), 'icon.png'))
