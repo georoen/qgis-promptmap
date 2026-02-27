@@ -32,6 +32,7 @@ from qgis.core import (
 from qgis import processing
 from qgis.utils import iface
 from PyQt5.QtCore import QSize, Qt, QVariant
+from PyQt5.QtGui import QImage, QPainter
 
 class BaseAIAlgorithm(QgsProcessingAlgorithm):
     """Base class for AI processing algorithms."""
@@ -120,7 +121,11 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
             feedback.pushInfo(f"Saved generated image to {output_path}")
         else:
             raise QgsProcessingException(f"Failed to save result to {output_path}")
-        
+
+        # 5b. Burn watermark (plugin icon, lower-right corner, proportionally scaled)
+        self._apply_watermark(output_path)
+        feedback.pushInfo("Watermark applied.")
+
         # 6. Georeference
         feedback.pushInfo(f"Georeferencing image...")
 
@@ -208,6 +213,58 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
             with open(output_path, 'wb') as f: f.write(img_bytes)
             return True
         except Exception: return False
+
+    def _apply_watermark(self, image_path: str, opacity: float = 0.5) -> None:
+        """
+        Burns the plugin icon as a watermark into the lower-right corner of the image.
+
+        The watermark is scaled proportionally to 12 % of the shorter image dimension,
+        so it looks consistent across 512×512, 1024×1024, 2048×2048 and 1280×720 outputs.
+        A padding of 2 % of the shorter dimension keeps it away from the edge.
+
+        Uses only PyQt5 (bundled with QGIS) – no additional dependencies required.
+        """
+        _WATERMARK_RATIO = 0.12  # watermark size relative to shorter image side
+        _PADDING_RATIO   = 0.02  # margin from image edge
+
+        # --- load target image -------------------------------------------------
+        image = QImage(image_path)
+        if image.isNull():
+            return  # silently skip – don't break the pipeline
+
+        # QPainter requires a 32-bit ARGB format for correct alpha / opacity blending
+        image = image.convertToFormat(QImage.Format_ARGB32_Premultiplied)
+
+        # --- load watermark icon -----------------------------------------------
+        # base.py lives in  <plugin_root>/clients/base.py  →  go up one level
+        icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs", "watermark.png")
+        watermark = QImage(icon_path)
+        if watermark.isNull():
+            return  # icon not found – silently skip
+
+        # --- scale proportionally to the shorter image side --------------------
+        short_side = min(image.width(), image.height())
+        wm_size  = max(16, int(short_side * _WATERMARK_RATIO))  # at least 16 px
+        padding  = max(4,  int(short_side * _PADDING_RATIO))    # at least  4 px
+
+        watermark = watermark.scaled(
+            wm_size, wm_size,
+            Qt.KeepAspectRatio,
+            Qt.SmoothTransformation,
+        )
+
+        # --- position: bottom-right corner -------------------------------------
+        x = image.width()  - watermark.width()  - padding
+        y = image.height() - watermark.height() - padding
+
+        # --- composite with opacity --------------------------------------------
+        painter = QPainter(image)
+        painter.setOpacity(opacity)
+        painter.drawImage(x, y, watermark)
+        painter.end()
+
+        # --- overwrite the PNG in-place ----------------------------------------
+        image.save(image_path, "PNG")
 
 
 # =============================================================================
