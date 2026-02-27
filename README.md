@@ -42,12 +42,7 @@ Visualise planning scenarios as photorealistic aerial views — add green roofs 
    - **Black Forest Labs (FLUX models):** <https://api.bfl.ai/>
    - **Google (Gemini models):** <https://aistudio.google.com/>
 
-   API keys are entered in the Processing dialog. To avoid re-entering your key every session, set an environment variable before starting QGIS:
-   ```bash
-   export BFL_API_KEY="your-bfl-key"       # for FLUX models
-   export GEMINI_API_KEY="your-gemini-key" # for Gemini models
-   ```
-   PromptMap will pre-fill the API Key field automatically. You can still override it in the dialog.
+   API keys are entered in the Processing dialog. QGIS remembers your last parameters via **Processing** → **History**, so you can re-run without re-entering the key. For persistent storage, set an environment variable as described in [docs/env_vars.md](docs/env_vars.md).
 
    > Need help getting started? Book an onboarding session at [meet.jstaab.de](https://meet.jstaab.de).
 
@@ -59,31 +54,18 @@ After a few seconds the georeferenced layer loads automatically.
 ![Processing dialog screenshot](docs/screenshot.png)
 
 
-## Tile sizes
+## Input
 
-| Option | Pixels | Use case |
-|---|---|---|
-| 512×512 | 512 × 512 | Fast preview |
-| 1024×1024 | 1024 × 1024 | Default — good balance |
-| 2048×2048 | 2048 × 2048 | High detail |
-| 1280×720 (16:9) | 1280 × 720 | Widescreen / landscape |
-| Map Canvas (Full Extent) | Canvas size | Exact canvas match |
+You can render any visible layer combination. This is raster, vector, or a mix of both — the plugin renders the canvas the very same way as it appears on screen to you. Additional text annotations are subject of the context window too.
 
-The canvas extent is cropped to match the selected aspect ratio before rendering, so the georeferencing is always pixel-perfect.
+The plugin supports multiple aspect ratios. Yet, best results are achieved with square or common wide-screen tiles — the default is 1024×1024 pixels.
 
+Note, you are responsible for the rights of the imagery you send to the API.
 
-## Provenance & metadata
-
-Every run saves four files to the output directory:
-
-| File | Content |
-|---|---|
-| `input.png` | Rendered QGIS canvas (the input sent to the API) |
-| `output.png` | AI result with watermark burned in |
-| `output.tif` | Georeferenced GeoTIFF (CRS + bounding box) |
-| `output.gpkg` | GeoPackage with model name, prompt, timestamp, and extent polygon |
-
-The GeoPackage provides a traceable record of every generated tile — useful for documentation, reproducibility, and provenance in planning workflows.
+## Output 
+The plugin generates two output files:
+- A georeferenced GeoTIFF. 
+- The GeoPackage delinteaes the boundingbox aswell as the prompt, for reproducibility, and provenance in planning workflows.
 
 
 ## Troubleshooting
