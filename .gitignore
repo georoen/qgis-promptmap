@@ -2,3 +2,4 @@
 __pycache__
 .DS_Store
 install_ZIP.pptx
+.pytest_cache/

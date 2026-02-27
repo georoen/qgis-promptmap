@@ -1,80 +1,107 @@
-# QGIS FLUX AI Toolbox
+# PromptMap — The PromptMapping Plugin
 
-Turn your current QGIS canvas into a high-contrast land-cover rendering with a single
-Processing algorithm. The plugin captures the visible map, sends it to FLUX.1 Kontext or
-FLUX 1.1 [pro] Ultra, and loads the returned PNG back into your project with proper
-georeferencing. The default prompt emphasises buildings, roads, vegetation, soil, and
-water—perfect for quick site analysis or presentation graphics.
+**PromptMap** is a QGIS Processing plugin that connects your live map canvas to generative AI image APIs. Capture what you see, write a prompt in plain language, and receive a georeferenced GeoTIFF layer back — in seconds.
+
+Supported APIs: **Black Forest Labs** (FLUX.1 Kontext, FLUX 1.1 Ultra, FLUX.2 Editing) and **Google Gemini** (Gemini 3 Pro Image). See [`docs/flux_models.md`](docs/flux_models.md) for the full parameter reference and API documentation links.
 
 
-## From image to map in less than 10 seconds
-Have you ever looked at high resolution satellite imagery and wondered, how to turn the
-information into map? 
+## What can you do with it?
 
-| Input Canvas (Bing Satellite) | Default output (FLUX.1 Kontext) |
-| --- | --- |
-| ![Input](docs/bing_satellite.png) | ![Output](docs/flux_kontext_defaults.png) |
+Three application modes, all driven by the same prompt-based workflow:
 
-The default prompt is tuned for urban domains: buildings become crisp black solids, roads
-and rails pop as white lines, open green turns solid emerald, soil is pale yellow, and
-water bodies shine in blue. Use natural-language tweaks to pivot toward other thematic
-topics whenever you need to highlight different classes.
+### 1 — Segmentation & Detection
 
-- **Semantic look** – Lightweight land-cover classifier (a.k.a. thematic rendering, urban fabric maps,
-  geo-semantic styling, contextual land-use depiction, or automated cartographic shading).
-- **Source agnostic** – Ingests satellite, aerial or drone imagery as basemaps. Everything
-  you see on your canvas is  forwarded to the AI model.
-- **Clean UX** – Only API Key + Prompt are required. Advanced options available.
+Isolate thematic features — construction sites, vegetation, water bodies — directly from satellite or aerial imagery. The AI understands spatial context and returns a clean, colour-coded mask that can be post-processed into vector polygons.
 
-## Usage
+![Segmentation example](docs/segmentation.png)
 
-![Processing dialog screenshot](docs/screenshot.png)
+### 2 — Cartographic Abstraction
 
-The full matrix of embeded parameters is in [`docs/flux_models.md`](docs/flux_models.md). Please also see the official BFL docs for [FLUX 1 Kontext](https://docs.bfl.ai/kontext/kontext_image_editing#flux-1-kontext-image-editing-parameters) and 
-[FLUX 1.1 Ultra](https://docs.bfl.ai/flux/flux_pro#flux-11-ultra) for further details.
+Turn raw imagery into a presentation-ready thematic map. Buildings become crisp black solids, roads pop as white lines, green areas turn solid emerald. Adjust the prompt to match your thematic focus.
 
+![Cartography example](docs/cartography.png)
 
-## How it works (flow)
+### 3 — Synthetic Aerial Imagery
 
-Rendered flowchart: ![FLUX AI Processing flow](docs/plugin_flow.png)
+Visualise planning scenarios as photorealistic aerial views — add green roofs and PV panels, insert new buildings, remove existing structures, or replace land use. The output is georeferenced and can be fed back into the next iteration.
 
-Source mermaid for edits lives in `docs/plugin_flow.mmd` (render to SVG/PNG before updating the link).
+![Synthetic aerial imagery example](docs/synthImage.png)
+
+> **Note on realism:** AI-generated aerial images can look very convincing. For this reason, every output is permanently watermarked with the PromptMap logo. The watermark cannot be removed. Always label AI-generated imagery clearly before sharing or publishing.
+
 
 ## Quickstart
 
-1. **Install the plugin**
-   Download ZIP from GitHub. 
-   Then open **QGis -> Plugins -> Manage and Install… -> Install from ZIP**. Eventually **enable the installed *AI Toolbox***.
-   A graphical illustration can be found [here](docs/install_ZIP.png).
-   
-   You do now find the *AI Toolbox* within your processing tools.
+1. **Install the plugin**  
+   Download the ZIP from GitHub.  
+   Open **QGIS → Plugins → Manage and Install… → Install from ZIP**, then enable **PromptMap**.  
+   See [docs/install_ZIP.png](docs/install_ZIP.png) for a visual guide.
 
-2. **Grab an API key** from <https://api.bfl.ai/> (needs FLUX pro credit). Paste it into
-   the Processing dialog every time or store it via the QGIS **Favorites** feature.
+2. **Get an API key**
+   PromptMap connects to external AI APIs — you need to register and obtain an API key directly from the respective provider:
+   - **Black Forest Labs (FLUX models):** <https://api.bfl.ai/>
+   - **Google (Gemini models):** <https://aistudio.google.com/>
 
-3. **Open the Processing Toolbox → FLUX AI Processing** and pick either *FLUX.1 Kontext*
-   or *FLUX 1.1 Ultra* (Experimental!). Leave the default prompt in place for semantic 
-   segmentation or tweak it to your needs. Hit **Run**.
+   API keys are entered in the Processing dialog. QGIS remembers your last parameters via **Processing** → **History**, so you can re-run without re-entering the key. For persistent storage, set an environment variable as described in [docs/env_vars.md](docs/env_vars.md).
 
-After a few seconds of processing, the layer loads automatically under an “AI Results” group.
+   > Need help getting started? Book an onboarding session at [meet.jstaab.de](https://meet.jstaab.de).
+
+3. **Run**  
+   Open **Processing Toolbox → PromptMap → Black Forest Labs API** (or **Google Gemini API**), pick a model, paste your API key, write a prompt, and hit **Run**.
+
+After a few seconds the georeferenced layer loads automatically.
+
+![Processing dialog screenshot](docs/screenshot.png)
+
+
+## Input
+
+You can render any visible layer combination. This is raster, vector, or a mix of both — the plugin renders the canvas the very same way as it appears on screen to you. Additional text annotations are subject of the context window too.
+
+The plugin supports multiple aspect ratios. Yet, best results are achieved with square or common wide-screen tiles — the default is 1024×1024 pixels.
+
+Note, you are responsible for the rights of the imagery you send to the API.
+
+## Output 
+The plugin generates two output files:
+- A georeferenced GeoTIFF. 
+- The GeoPackage delinteaes the boundingbox aswell as the prompt, for reproducibility, and provenance in planning workflows.
 
 
 ## Troubleshooting
-- **Hallucinations** – make sure your prompt matches the input image. Don't ask for blue water bodies (default) if there is no water visible.
-- **401 / API errors** – make sure your key is valid and you have enough credits.
-- **Timeout / Failed** – rerun later or reduce the tile size. Check the generated log in
-  your output directory.
-- **Nothing shows up** – ensure at least one layer is visible on the canvas; the plugin
-  renders what you currently see.
 
-> Note: The software comes without warranty. It serves as interface between QGIS and Black Forest Labs. It is not responsible for the models output. The user is responsible for the image rights attached to the map canvas. 
-> AI generated results may be wrong. 
+| Symptom | Fix |
+|---|---|
+| **Hallucinations / wrong content** | Make sure your prompt matches what is visible on the canvas. |
+| **401 / Unauthorized** | Check that your API key is valid and has sufficient credits. |
+| **Timeout / Task Failed** | Reduce tile size or retry later. |
+| **Nothing loads** | Ensure at least one layer is visible on the canvas before running. |
+
+
+## Disclaimer & responsible use
+
+> **PromptMap is provided without warranty of any kind.** The author accepts no liability for the outputs generated by the connected AI models, for any decisions made on the basis of those outputs, or for any direct, indirect, or consequential damages arising from the use of this software.
+
+- PromptMap is an **interface** between QGIS and external AI APIs. It does not control, validate, or guarantee the content of model outputs.
+- The **user is solely responsible** for the image rights of the map canvas content forwarded to the API.
+- AI-generated results are **probabilistic** — identical inputs can produce different outputs.
+- Models may reproduce **cultural stereotypes** or geographic biases.
+- Image data and prompts **leave your local system** and are processed on external cloud infrastructure. Review the privacy policies of the respective API providers before use.
+- Synthetic aerial images must be **clearly labelled as AI-generated** before sharing or publication.
+- PromptMap is not suitable for safety-critical, legal, or regulatory applications without independent expert verification.
+
+
+## Citation
+
+If you use PromptMap in research or publications, please cite:
+
+> Staab, J. (2026). Vom Prompt zum Plan mit GenAI: Fotorealistische, synthetische Luftbilder im GIS als neues Werkzeug für Stadt- und Landschaftsplanung. *REAL CORP 2026 – 31st International Conference on Urban Planning and Regional Development in the Information Society*, Vienna, Austria, 22–25 March 2026.
 
 
 ## Support & contact
 
-- Author: Jeroen Staab – email@jstaab.de
-- Issues / feature requests: <https://github.com/georoen/qgis-flux>
-- Professionals can book individual onboarding, teachings and use-case specific consultations by contacting [Dr. J. Staab Research](https://jstaab.de)
+- Author: Jeroen Staab — email@jstaab.de
+- Issues / feature requests: <https://github.com/georoen/qgis-promptmap/issues>
+- Onboarding, teaching, and use-case consulting: [Dr. J. Staab Research](https://jstaab.de) — book a session at [meet.jstaab.de](https://meet.jstaab.de)
 
-Tag your renders with **#qgisflux** so we can see what you build!
+Tag your renders with **#PromptMap** so we can see what you build!

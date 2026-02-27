@@ -54,8 +54,9 @@ class Flux1_1UltraProAlgorithm(BaseAIAlgorithm):
         client = Flux1_1UltraProAPIClient(api_key)
         return client.process_image(image_b64, prompt, strength, safety, aspect_ratio, seed, feedback)
 
+    def _api_key_env_var(self): return "BFL_API_KEY"
     def name(self): return "flux_ultra"
     def displayName(self): return "FLUX 1.1 [pro] Ultra"
-    def group(self): return "FLUX AI"
-    def groupId(self): return "flux_ai"
+    def group(self): return "Black Forest Labs API"
+    def groupId(self): return "promptmap_bfl"
     def createInstance(self): return Flux1_1UltraProAlgorithm()
