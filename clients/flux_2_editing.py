@@ -83,6 +83,6 @@ class Flux2EditingAlgorithm(BaseAIAlgorithm):
 
     def name(self): return "flux_2_editing"
     def displayName(self): return "FLUX.2 Image Editing"
-    def group(self): return "FLUX AI"
-    def groupId(self): return "flux_ai"
+    def group(self): return "Black Forest Labs API"
+    def groupId(self): return "promptmap_bfl"
     def createInstance(self): return Flux2EditingAlgorithm()

@@ -1,4 +1,4 @@
-# Tests für FLUX-Stylize-Tiles (ohne QGIS/FLUX-Laufzeit)
+# Tests für PromptMap (ohne QGIS-Laufzeit)
 
 Diese Tests validieren ausschließlich die interne Logik von [`FluxStylizeTiles`](flux_stylize_tiles.py:1) (Polling/Download, World-File-Geometrie, Dimensionsprüfung/Resampling, Logging, VRT-Bau). Es werden keine echten Netzaufrufe durchgeführt und keine QGIS-Laufzeit benötigt.
 

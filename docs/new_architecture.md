@@ -1,4 +1,4 @@
-# New QGIS FLUX Architecture - Detailed Explanation
+# PromptMap Architecture — Detailed Explanation
 
 ## Architecture Overview
 

@@ -1,6 +1,6 @@
 # Contributions welcome
 
-Thanks for helping keep the toolbox sharp. A few notes before you open a PR.
+Thanks for helping keep PromptMap sharp. A few notes before you open a PR.
 
 ## Architecture primer
 
@@ -17,9 +17,9 @@ PNG is enforced throughout so transparency and georeferencing remain predictable
 
 ## Development workflow
 
-1. Fork/clone the repo into `~/Desktop/qgis_flux` (or update paths in README accordingly).
-2. Copy the folder into your QGIS profile’s `python/plugins/` directory, restart QGIS,
-   and enable **AI Toolbox**.
+1. Fork/clone the repo into `~/Desktop/promptmap` (or update paths in README accordingly).
+2. Copy the folder into your QGIS profile's `python/plugins/` directory, restart QGIS,
+   and enable **PromptMap**.
 3. Iterate on code, then run the unit tests:
 
    ```bash
@@ -32,7 +32,7 @@ PNG is enforced throughout so transparency and georeferencing remain predictable
 
   ```bash
   QGIS_PLUGINS_DIR="$HOME/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/"
-  rm -rf "$QGIS_PLUGINS_DIR/qgis_flux/"
+  rm -rf "$QGIS_PLUGINS_DIR/promptmap/"
   rsync -av --exclude='.*' "$PWD" "$QGIS_PLUGINS_DIR"
   ```
   Then restart QGIS.

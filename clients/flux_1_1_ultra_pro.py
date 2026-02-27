@@ -56,6 +56,6 @@ class Flux1_1UltraProAlgorithm(BaseAIAlgorithm):
 
     def name(self): return "flux_ultra"
     def displayName(self): return "FLUX 1.1 [pro] Ultra"
-    def group(self): return "FLUX AI"
-    def groupId(self): return "flux_ai"
+    def group(self): return "Black Forest Labs API"
+    def groupId(self): return "promptmap_bfl"
     def createInstance(self): return Flux1_1UltraProAlgorithm()

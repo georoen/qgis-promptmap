@@ -1,5 +1,5 @@
 """
-QGIS Plugin Entry Point.
+QGIS Plugin Entry Point — PromptMap.
 """
 
 import os
@@ -11,8 +11,9 @@ from .clients.flux_1_1_ultra_pro import Flux1_1UltraProAlgorithm
 from .clients.gemini_3_pro_image import Gemini3ProImageAlgorithm
 from .clients.flux_2_editing import Flux2EditingAlgorithm
 
-class FluxProvider(QgsProcessingProvider):
-    """Processing provider for FLUX AI algorithms."""
+
+class PromptMapProvider(QgsProcessingProvider):
+    """Processing provider for PromptMap AI algorithms."""
 
     def __init__(self):
         super().__init__()
@@ -24,15 +25,16 @@ class FluxProvider(QgsProcessingProvider):
         self.addAlgorithm(Flux2EditingAlgorithm())
 
     def id(self):
-        return 'flux_ai'
+        return 'promptmap'
 
     def name(self):
-        return 'AI Toolbox'
+        return 'PromptMap'
 
     def icon(self):
         return QIcon(os.path.join(os.path.dirname(__file__), 'icon.png'))
 
-class FluxPlugin:
+
+class PromptMapPlugin:
     """Main plugin class."""
 
     def __init__(self, iface):
@@ -40,7 +42,7 @@ class FluxPlugin:
         self.provider = None
 
     def initGui(self):
-        self.provider = FluxProvider()
+        self.provider = PromptMapProvider()
         QgsApplication.processingRegistry().addProvider(self.provider)
 
     def unload(self):

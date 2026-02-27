@@ -54,6 +54,6 @@ class Flux1KontextProAlgorithm(BaseAIAlgorithm):
 
     def name(self): return "flux_kontext"
     def displayName(self): return "FLUX.1 Kontext [pro]"
-    def group(self): return "FLUX AI"
-    def groupId(self): return "flux_ai"
+    def group(self): return "Black Forest Labs API"
+    def groupId(self): return "promptmap_bfl"
     def createInstance(self): return Flux1KontextProAlgorithm()

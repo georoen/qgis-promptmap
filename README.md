@@ -1,4 +1,4 @@
-# QGIS FLUX AI Toolbox
+# PromptMap — AI Cartography for QGIS
 
 Turn your current QGIS canvas into a high-contrast land-cover rendering with a single
 Processing algorithm. The plugin captures the visible map, sends it to FLUX.1 Kontext or
@@ -36,7 +36,7 @@ The full matrix of embeded parameters is in [`docs/flux_models.md`](docs/flux_mo
 
 ## How it works (flow)
 
-Rendered flowchart: ![FLUX AI Processing flow](docs/plugin_flow.png)
+Rendered flowchart: ![PromptMap Processing flow](docs/plugin_flow.png)
 
 Source mermaid for edits lives in `docs/plugin_flow.mmd` (render to SVG/PNG before updating the link).
 
@@ -44,17 +44,15 @@ Source mermaid for edits lives in `docs/plugin_flow.mmd` (render to SVG/PNG befo
 
 1. **Install the plugin**
    Download ZIP from GitHub. 
-   Then open **QGis -> Plugins -> Manage and Install… -> Install from ZIP**. Eventually **enable the installed *AI Toolbox***.
+   Then open **QGis -> Plugins -> Manage and Install… -> Install from ZIP**. Eventually **enable the installed *PromptMap***.
    A graphical illustration can be found [here](docs/install_ZIP.png).
    
-   You do now find the *AI Toolbox* within your processing tools.
+   You do now find the *PromptMap* within your processing tools.
 
 2. **Grab an API key** from <https://api.bfl.ai/> (needs FLUX pro credit). Paste it into
    the Processing dialog every time or store it via the QGIS **Favorites** feature.
 
-3. **Open the Processing Toolbox → FLUX AI Processing** and pick either *FLUX.1 Kontext*
-   or *FLUX 1.1 Ultra* (Experimental!). Leave the default prompt in place for semantic 
-   segmentation or tweak it to your needs. Hit **Run**.
+3. **Open the Processing Toolbox → PromptMap** and pick a model (*FLUX.1 Kontext*, *FLUX 1.1 Ultra*, *FLUX.2 Editing*, or *Gemini 3 Pro Image*). Leave the default prompt in place for semantic segmentation or tweak it to your needs. Hit **Run**.
 
 After a few seconds of processing, the layer loads automatically under an “AI Results” group.
 
@@ -74,7 +72,7 @@ After a few seconds of processing, the layer loads automatically under an “AI 
 ## Support & contact
 
 - Author: Jeroen Staab – email@jstaab.de
-- Issues / feature requests: <https://github.com/georoen/qgis-flux>
+- Issues / feature requests: <https://github.com/georoen/qgis-promptmap>
 - Professionals can book individual onboarding, teachings and use-case specific consultations by contacting [Dr. J. Staab Research](https://jstaab.de)
 
-Tag your renders with **#qgisflux** so we can see what you build!
+Tag your renders with **#PromptMap** so we can see what you build!

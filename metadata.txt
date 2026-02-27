@@ -1,19 +1,19 @@
 [general]
-name=AI Toolbox
+name=PromptMap
 qgisMinimumVersion=3.20
-description=Semantic segmentation and AI cartography powered by FLUX Kontext & Ultra APIs
-version=0.4.2
+description=AI cartography for QGIS — render your canvas, send a prompt, get a georeferenced map layer back. Powered by FLUX (BFL) and Gemini APIs.
+version=0.5.0
 author=Jeroen Staab
 email=email@jstaab.de
 
-about=Transform your current QGIS canvas into a high-contrast land-cover rendering. The plugin renders the live map view, sends it to FLUX.1 Kontext or FLUX 1.1 Ultra, and returns a georeferenced layer that emphasizes buildings, roads, vegetation, soil, and water for fast site analysis.
+about=PromptMap turns your current QGIS canvas into a styled, georeferenced raster layer using generative AI. Render the live map view, write a prompt, and receive a GeoTIFF back — ready to use as a new layer. Supports FLUX.1 Kontext, FLUX 1.1 Ultra, FLUX.2 Editing, and Gemini 3 Pro Image.
 
-tracker=https://github.com/georoen/qgis-flux/issues
-repository=https://github.com/georoen/qgis-flux
-changelog=Unified semantic-segmentation prompt, aspect-ratio aware tiling, PNG-only output, new FLUX Ultra controls (safety, raw mode, prompt strength), and advanced-parameter UX.
+tracker=https://github.com/georoen/qgis-promptmap/issues
+repository=https://github.com/georoen/qgis-promptmap
+changelog=Renamed to PromptMap; added FLUX.2 Editing and Gemini 3 Pro Image; unified base pipeline; aspect-ratio-aware tiling; watermark; GeoTIFF + GPKG metadata output.
 
-tags=raster,processing,ai,flux,stylization
-homepage=https://github.com/georoen/qgis-flux
+tags=raster,processing,ai,flux,gemini,promptmap,cartography,stylization
+homepage=https://github.com/georoen/qgis-promptmap
 category=Raster
 icon=icon.png
 experimental=False

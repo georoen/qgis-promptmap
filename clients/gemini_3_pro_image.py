@@ -80,6 +80,6 @@ class Gemini3ProImageAlgorithm(BaseAIAlgorithm):
 
     def name(self): return "gemini_3_image"
     def displayName(self): return "Gemini 3 Pro Image"
-    def group(self): return "Gemini AI"
-    def groupId(self): return "gemini_ai"
+    def group(self): return "Google Gemini API"
+    def groupId(self): return "promptmap_gemini"
     def createInstance(self): return Gemini3ProImageAlgorithm()
