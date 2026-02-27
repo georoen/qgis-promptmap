@@ -37,12 +37,17 @@ Visualise planning scenarios as photorealistic aerial views — add green roofs 
    Open **QGIS → Plugins → Manage and Install… → Install from ZIP**, then enable **PromptMap**.  
    See [docs/install_ZIP.png](docs/install_ZIP.png) for a visual guide.
 
-2. **Get an API key**  
+2. **Get an API key**
    PromptMap connects to external AI APIs — you need to register and obtain an API key directly from the respective provider:
    - **Black Forest Labs (FLUX models):** <https://api.bfl.ai/>
    - **Google (Gemini models):** <https://aistudio.google.com/>
 
-   API keys are entered directly in the Processing dialog. Store them via QGIS **Favorites** to avoid re-entering them each time.
+   API keys are entered in the Processing dialog. To avoid re-entering your key every session, set an environment variable before starting QGIS:
+   ```bash
+   export BFL_API_KEY="your-bfl-key"       # for FLUX models
+   export GEMINI_API_KEY="your-gemini-key" # for Gemini models
+   ```
+   PromptMap will pre-fill the API Key field automatically. You can still override it in the dialog.
 
    > Need help getting started? Book an onboarding session at [meet.jstaab.de](https://meet.jstaab.de).
 

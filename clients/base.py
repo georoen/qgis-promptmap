@@ -4,6 +4,7 @@ Base classes for FLUX/Gemini clients.
 
 import os
 import time
+from os import environ
 from math import gcd
 from typing import Dict, Any, Optional, Tuple
 
@@ -52,7 +53,20 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
 
     def initAlgorithm(self, config=None):
         """Initialize common parameters."""
-        self.addParameter(QgsProcessingParameterString(self.API_KEY, "API Key", optional=False))
+        # Read API key from environment variable if set; the user can override
+        # it in the dialog.  Supported env vars (checked in order):
+        #   BFL_API_KEY   – Black Forest Labs models
+        #   GEMINI_API_KEY – Google Gemini models
+        #   PROMPTMAP_API_KEY – generic fallback for any PromptMap model
+        default_key = (
+            environ.get("BFL_API_KEY")
+            or environ.get("GEMINI_API_KEY")
+            or environ.get("PROMPTMAP_API_KEY")
+            or ""
+        )
+        self.addParameter(QgsProcessingParameterString(
+            self.API_KEY, "API Key", defaultValue=default_key, optional=False
+        ))
         self.addParameter(QgsProcessingParameterString(self.PROMPT, "Prompt", multiLine=True, optional=False))
         
         self.addParameter(QgsProcessingParameterEnum(
