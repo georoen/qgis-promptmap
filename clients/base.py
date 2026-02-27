@@ -83,7 +83,10 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
             render_extent = extent
         else:
             ratio = target_w / target_h
-            render_extent = extent_with_aspect_ratio(extent, ratio)  # TODO: Explain why we do this
+            # Crop the canvas extent to the exact aspect ratio of the target tile size.
+            # Without this, the rendered PNG would be letterboxed / pillarboxed and the
+            # georeferencing would map the full (uncropped) extent onto a distorted image.
+            render_extent = extent_with_aspect_ratio(extent, ratio)
 
         aspect_ratio_str = format_aspect_ratio(target_w, target_h)
         feedback.pushInfo(f"Image geometry: {target_w}x{target_h} ({aspect_ratio_str})")
@@ -92,7 +95,7 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        input_path = os.path.join(output_dir, f"{self.name()}_input.png") # TODO: Reduce filename to input.png only
+        input_path = os.path.join(output_dir, "input.png")
         self._render_map(render_extent, target_w, target_h, input_path)
         
         if not os.path.exists(input_path):
@@ -108,7 +111,7 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
 
         # 5. Download/Save generated result
         # The API method should return either a URL (for download) or raw data (for save)
-        output_path = os.path.join(output_dir, f"{self.name()}_{int(time.time())}.png") # TODO: Reduce filename to output.png only
+        output_path = os.path.join(output_dir, "output.png")
         
         if "url" in result:
             if not self.download_result(result["url"], output_path):
@@ -123,8 +126,10 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
             raise QgsProcessingException(f"Failed to save result to {output_path}")
 
         # 5b. Burn watermark (plugin icon, lower-right corner, proportionally scaled)
-        self._apply_watermark(output_path)
-        feedback.pushInfo("Watermark applied.")
+        if self._apply_watermark(output_path):
+            feedback.pushInfo("Watermark applied.")
+        else:
+            feedback.reportError("Watermark skipped: docs/watermark.png not found or image unreadable.")
 
         # 6. Georeference
         feedback.pushInfo(f"Georeferencing image...")
@@ -214,7 +219,7 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
             return True
         except Exception: return False
 
-    def _apply_watermark(self, image_path: str, opacity: float = 0.5) -> None:
+    def _apply_watermark(self, image_path: str, opacity: float = 0.5) -> bool:
         """
         Burns the plugin icon as a watermark into the lower-right corner of the image.
 
@@ -223,6 +228,15 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         A padding of 2 % of the shorter dimension keeps it away from the edge.
 
         Uses only PyQt5 (bundled with QGIS) – no additional dependencies required.
+
+        Args:
+            image_path: Path to the PNG to modify in-place.
+            opacity: Watermark opacity (0.0–1.0).
+
+        Returns:
+            True if the watermark was applied, False if skipped (missing file or
+            null image).  The pipeline continues either way; the caller decides
+            whether to surface a warning.
         """
         _WATERMARK_RATIO = 0.12  # watermark size relative to shorter image side
         _PADDING_RATIO   = 0.02  # margin from image edge
@@ -230,7 +244,7 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         # --- load target image -------------------------------------------------
         image = QImage(image_path)
         if image.isNull():
-            return  # silently skip – don't break the pipeline
+            return False  # output image unreadable – skip without breaking pipeline
 
         # QPainter requires a 32-bit ARGB format for correct alpha / opacity blending
         image = image.convertToFormat(QImage.Format_ARGB32_Premultiplied)
@@ -240,7 +254,7 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs", "watermark.png")
         watermark = QImage(icon_path)
         if watermark.isNull():
-            return  # icon not found – silently skip
+            return False  # docs/watermark.png missing – skip without breaking pipeline
 
         # --- scale proportionally to the shorter image side --------------------
         short_side = min(image.width(), image.height())
@@ -265,6 +279,7 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
 
         # --- overwrite the PNG in-place ----------------------------------------
         image.save(image_path, "PNG")
+        return True
 
 
 # =============================================================================
