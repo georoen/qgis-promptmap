@@ -78,6 +78,7 @@ class Gemini3ProImageAlgorithm(BaseAIAlgorithm):
         client = Gemini3ProImageAPIClient(api_key)
         return client.process_image(image_b64, prompt, aspect_ratio, feedback)
 
+    def _api_key_env_var(self): return "GEMINI_API_KEY"
     def name(self): return "gemini_3_image"
     def displayName(self): return "Gemini 3 Pro Image"
     def group(self): return "Google Gemini API"

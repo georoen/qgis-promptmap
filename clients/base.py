@@ -51,19 +51,21 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         ("Map Canvas (Full Extent)", 0, 0)
     ]
 
+    def _api_key_env_var(self) -> str:
+        """Return the environment variable name for this algorithm's API key.
+
+        Subclasses should override this to return their provider-specific
+        variable (e.g. 'BFL_API_KEY' or 'GEMINI_API_KEY').  The base
+        implementation falls back to the generic 'PROMPTMAP_API_KEY'.
+        """
+        return "PROMPTMAP_API_KEY"
+
     def initAlgorithm(self, config=None):
         """Initialize common parameters."""
-        # Read API key from environment variable if set; the user can override
-        # it in the dialog.  Supported env vars (checked in order):
-        #   BFL_API_KEY   – Black Forest Labs models
-        #   GEMINI_API_KEY – Google Gemini models
-        #   PROMPTMAP_API_KEY – generic fallback for any PromptMap model
-        default_key = (
-            environ.get("BFL_API_KEY")
-            or environ.get("GEMINI_API_KEY")
-            or environ.get("PROMPTMAP_API_KEY")
-            or ""
-        )
+        # Pre-fill the API Key field from the provider-specific env var.
+        # Each subclass declares its own variable via _api_key_env_var().
+        # The user can always override the value in the Processing dialog.
+        default_key = environ.get(self._api_key_env_var(), "")
         self.addParameter(QgsProcessingParameterString(
             self.API_KEY, "API Key", defaultValue=default_key, optional=False
         ))

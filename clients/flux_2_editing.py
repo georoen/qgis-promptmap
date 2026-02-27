@@ -81,6 +81,7 @@ class Flux2EditingAlgorithm(BaseAIAlgorithm):
         client = Flux2APIClient(api_key, model_idx)
         return client.process_image(image_b64, prompt, safety, seed, feedback)
 
+    def _api_key_env_var(self): return "BFL_API_KEY"
     def name(self): return "flux_2_editing"
     def displayName(self): return "FLUX.2 Image Editing"
     def group(self): return "Black Forest Labs API"

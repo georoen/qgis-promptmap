@@ -52,6 +52,7 @@ class Flux1KontextProAlgorithm(BaseAIAlgorithm):
         client = Flux1KontextProAPIClient(api_key)
         return client.process_image(image_b64, prompt, safety, aspect_ratio, seed, feedback)
 
+    def _api_key_env_var(self): return "BFL_API_KEY"
     def name(self): return "flux_kontext"
     def displayName(self): return "FLUX.1 Kontext [pro]"
     def group(self): return "Black Forest Labs API"
