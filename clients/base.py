@@ -44,11 +44,9 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
     OUTPUT_DIR = "OUTPUT_DIR"
     
     TILE_OPTIONS = [
-        ("512×512 (1:1)", 512, 512),
-        ("1024×1024 (1:1)", 1024, 1024),
-        ("2048×2048 (1:1)", 2048, 2048),
-        ("1280×720 (16:9)", 1280, 720),
-        ("Map Canvas (Full Extent)", 0, 0)
+        ("Square (1:1, input render 2048×2048)", 2048, 2048),
+        ("Widescreen (16:9, input render 1280×720)", 1280, 720),
+        ("Experimental (Full Map Canvas Extent)", 0, 0)
     ]
 
     def _api_key_env_var(self) -> str:
@@ -72,7 +70,10 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterString(self.PROMPT, "Prompt", multiLine=True, optional=False))
         
         self.addParameter(QgsProcessingParameterEnum(
-            self.TILE_SIZE, "Tile Size", options=[t[0] for t in self.TILE_OPTIONS], defaultValue=1
+            self.TILE_SIZE,
+            "Aspect Ratio / Input Framing",
+            options=[t[0] for t in self.TILE_OPTIONS],
+            defaultValue=0,
         ))
         
         self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, "Output Directory"))
@@ -85,6 +86,9 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         api_key = self.parameterAsString(parameters, self.API_KEY, context)
         prompt = self.parameterAsString(parameters, self.PROMPT, context)
         tile_idx = self.parameterAsEnum(parameters, self.TILE_SIZE, context)
+        if tile_idx < 0 or tile_idx >= len(self.TILE_OPTIONS):
+            feedback.reportError("Invalid framing preset received; falling back to default (1:1).")
+            tile_idx = 0
         output_dir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
 
         # 2. Setup Geometry
@@ -99,13 +103,14 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
             render_extent = extent
         else:
             ratio = target_w / target_h
-            # Crop the canvas extent to the exact aspect ratio of the target tile size.
+            # Crop the canvas extent to the exact aspect ratio of the selected preset.
             # Without this, the rendered PNG would be letterboxed / pillarboxed and the
             # georeferencing would map the full (uncropped) extent onto a distorted image.
             render_extent = extent_with_aspect_ratio(extent, ratio)
 
         aspect_ratio_str = format_aspect_ratio(target_w, target_h)
         feedback.pushInfo(f"Image geometry: {target_w}x{target_h} ({aspect_ratio_str})")
+        feedback.pushInfo("Final output pixel dimensions are determined by the model/API response.")
 
         # 3. Export Map Canvas to Image
         if not os.path.exists(output_dir):
@@ -156,13 +161,14 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         geotiff_path = create_geotiff(output_path, render_extent, crs)
         
         # Load Raster Layer
-        self._load_raster_layer(geotiff_path, crs, feedback)
+        self._load_raster_layer(geotiff_path, feedback)
         
         # 7. Export & Load Metadata (GPKG)
         metadata = {
             "timestamp": str(int(time.time())),
             "model": self.displayName(),
             "prompt": prompt,
+            "framing_preset": self.TILE_OPTIONS[tile_idx][0],
             "tile_size": self.TILE_OPTIONS[tile_idx][0]
         }
         
@@ -202,13 +208,23 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         if not job.renderedImage().save(path, "PNG"):
             raise QgsProcessingException(f"Failed to save rendered image to {path}")
 
-    def _load_raster_layer(self, path, crs, feedback):
+    def _load_raster_layer(self, path, feedback):
+        """
+        Load the generated GeoTIFF without overriding CRS in-session.
+
+        Single source of truth for spatial reference is the GeoTIFF metadata
+        written on disk.
+        """
         layer = QgsRasterLayer(path, f"{self.displayName()} Result", "gdal")
-        if layer.isValid():
-            layer.setCrs(crs)
-            QgsProject.instance().addMapLayer(layer)
-        else:
+        if not layer.isValid():
             feedback.reportError("Failed to load result layer.")
+            return
+
+        if not layer.crs().isValid():
+            feedback.reportError("Generated GeoTIFF has no valid CRS metadata.")
+            return
+
+        QgsProject.instance().addMapLayer(layer)
 
     def _load_vector_layer(self, path, crs, feedback):
         layer = QgsVectorLayer(path, f"{self.displayName()} Metadata", "ogr")
@@ -354,21 +370,26 @@ def create_geotiff(image_path: str, extent: QgsRectangle, crs: QgsCoordinateRefe
     from osgeo import gdal
     
     geotiff_path = os.path.splitext(image_path)[0] + ".tif"
-    
-    # Use gdal.Translate with -a_ullr to assign bounds and -a_srs for CRS
-    ds = gdal.Translate(
-        geotiff_path,
-        image_path,
-        format='GTiff',
-        outputSRS=crs.toWkt(),
-        options=f"-a_ullr {extent.xMinimum()} {extent.yMaximum()} {extent.xMaximum()} {extent.yMinimum()}"
-    )
-    
+
+    # Assign georeferencing directly while converting PNG -> GeoTIFF.
+    # Keep this explicit and close to gdal_translate CLI semantics.
+    srs = crs.authid() or crs.toWkt()
+    translate_options = [
+        "-of", "GTiff",
+        "-a_srs", srs,
+        "-a_ullr",
+        str(extent.xMinimum()),
+        str(extent.yMaximum()),
+        str(extent.xMaximum()),
+        str(extent.yMinimum()),
+    ]
+
+    ds = gdal.Translate(geotiff_path, image_path, options=translate_options)
     if ds is None:
-        raise Exception(f"Failed to create GeoTIFF at {geotiff_path}")
-        
-    ds = None # Explicitly close dataset
-    
+        raise Exception(f"Failed to create georeferenced GeoTIFF at {geotiff_path}")
+
+    ds = None  # Explicitly close dataset
+
     return geotiff_path
 
 
