@@ -156,7 +156,7 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         geotiff_path = create_geotiff(output_path, render_extent, crs)
         
         # Load Raster Layer
-        self._load_raster_layer(geotiff_path, crs, feedback)
+        self._load_raster_layer(geotiff_path, feedback)
         
         # 7. Export & Load Metadata (GPKG)
         metadata = {
@@ -202,13 +202,23 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         if not job.renderedImage().save(path, "PNG"):
             raise QgsProcessingException(f"Failed to save rendered image to {path}")
 
-    def _load_raster_layer(self, path, crs, feedback):
+    def _load_raster_layer(self, path, feedback):
+        """
+        Load the generated GeoTIFF without overriding CRS in-session.
+
+        Single source of truth for spatial reference is the GeoTIFF metadata
+        written on disk.
+        """
         layer = QgsRasterLayer(path, f"{self.displayName()} Result", "gdal")
-        if layer.isValid():
-            layer.setCrs(crs)
-            QgsProject.instance().addMapLayer(layer)
-        else:
+        if not layer.isValid():
             feedback.reportError("Failed to load result layer.")
+            return
+
+        if not layer.crs().isValid():
+            feedback.reportError("Generated GeoTIFF has no valid CRS metadata.")
+            return
+
+        QgsProject.instance().addMapLayer(layer)
 
     def _load_vector_layer(self, path, crs, feedback):
         layer = QgsVectorLayer(path, f"{self.displayName()} Metadata", "ogr")
@@ -355,20 +365,60 @@ def create_geotiff(image_path: str, extent: QgsRectangle, crs: QgsCoordinateRefe
     
     geotiff_path = os.path.splitext(image_path)[0] + ".tif"
     
-    # Use gdal.Translate with -a_ullr to assign bounds and -a_srs for CRS
-    ds = gdal.Translate(
-        geotiff_path,
-        image_path,
-        format='GTiff',
-        outputSRS=crs.toWkt(),
-        options=f"-a_ullr {extent.xMinimum()} {extent.yMaximum()} {extent.xMaximum()} {extent.yMinimum()}"
-    )
+    # 1) Convert PNG -> GeoTIFF
+    ds = gdal.Translate(geotiff_path, image_path, format='GTiff')
     
     if ds is None:
         raise Exception(f"Failed to create GeoTIFF at {geotiff_path}")
-        
-    ds = None # Explicitly close dataset
-    
+
+    # 2) Persist georeference metadata directly on the TIFF dataset
+    if ds.RasterXSize <= 0 or ds.RasterYSize <= 0:
+        raise Exception("Failed to georeference GeoTIFF: invalid raster dimensions")
+
+    pixel_width = extent.width() / float(ds.RasterXSize)
+    pixel_height = extent.height() / float(ds.RasterYSize)
+    geotransform = (
+        extent.xMinimum(),
+        pixel_width,
+        0.0,
+        extent.yMaximum(),
+        0.0,
+        -pixel_height,
+    )
+
+    if ds.SetGeoTransform(geotransform) != gdal.CE_None:
+        raise Exception("Failed to write GeoTIFF geotransform metadata")
+
+    projection_wkt = crs.toWkt()
+    if not projection_wkt:
+        raise Exception("Failed to georeference GeoTIFF: empty CRS WKT")
+
+    if ds.SetProjection(projection_wkt) != gdal.CE_None:
+        raise Exception("Failed to write GeoTIFF projection metadata")
+
+    ds.FlushCache()
+    ds = None  # Explicitly close dataset
+
+    # 3) Re-open and validate metadata written to disk
+    check_ds = gdal.Open(geotiff_path, gdal.GA_ReadOnly)
+    if check_ds is None:
+        raise Exception(f"Failed to reopen GeoTIFF for validation: {geotiff_path}")
+
+    check_projection = check_ds.GetProjectionRef()
+    check_geotransform = check_ds.GetGeoTransform()
+    check_ds = None
+
+    if not check_projection:
+        raise Exception("GeoTIFF was written without projection metadata")
+
+    if (
+        check_geotransform is None
+        or len(check_geotransform) != 6
+        or check_geotransform[1] == 0.0
+        or check_geotransform[5] == 0.0
+    ):
+        raise Exception("GeoTIFF was written without valid geotransform metadata")
+
     return geotiff_path
 
 
