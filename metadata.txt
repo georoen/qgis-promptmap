@@ -2,7 +2,7 @@
 name=PromptMap
 qgisMinimumVersion=3.20
 description=AI cartography for QGIS — render your canvas, send a prompt, get a georeferenced map layer back. Powered by FLUX (BFL) and Gemini APIs.
-version=0.6.0
+version=0.6.1
 author=Jeroen Staab
 email=email@jstaab.de
 

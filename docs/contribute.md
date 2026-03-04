@@ -4,7 +4,7 @@ Thanks for helping keep PromptMap sharp. A few notes before you open a PR.
 
 ## Architecture primer
 
-1. **PREPARE** – [`BaseAIAlgorithm`](../clients/base.py) renders the visible QGIS canvas to PNG using the tile preset you choose (512², 1024², 2048², 16:9, or full canvas). It crops the extent to match the selected aspect ratio and encodes the image as base64.
+1. **PREPARE** – [`BaseAIAlgorithm`](../clients/base.py) renders the visible QGIS canvas to PNG using the framing preset you choose (1:1, 16:9, or full canvas). It crops the extent to match the selected aspect ratio and encodes the image as base64. Final output pixel dimensions are API/model-dependent.
 2. **PROCESS** – The algorithm subclass calls `execute_api()`, which delegates to the provider-specific API client ([`BFLAPIClient`](../clients/bfl_base.py) for FLUX models, [`Gemini3ProImageAPIClient`](../clients/gemini_3_pro_image.py) for Gemini). BFL uses asynchronous polling; Gemini returns inline data.
 3. **INTEGRATE** – The result is downloaded or decoded, watermarked, georeferenced as a GeoTIFF via GDAL, and loaded as a new raster layer. A GeoPackage with model name, prompt, timestamp, and extent is saved alongside.
 

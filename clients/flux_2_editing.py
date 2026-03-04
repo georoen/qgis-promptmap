@@ -5,8 +5,7 @@ FLUX.2 Image Editing Client.
 from typing import Dict, Any, Optional
 from qgis.core import (
     QgsProcessingParameterNumber,
-    QgsProcessingParameterEnum,
-    QgsProcessingParameterFile
+    QgsProcessingParameterEnum
 )
 from .base import BaseAIAlgorithm
 from .bfl_base import BFLAPIClient
@@ -26,11 +25,12 @@ class Flux2APIClient(BFLAPIClient):
         endpoint = self.ENDPOINTS.get(model_idx, self.ENDPOINTS[0])
         super().__init__(api_key, endpoint)
 
-    def process_image(self, image_b64, prompt, safety, seed, feedback) -> Dict[str, Any]:
+    def process_image(self, image_b64, prompt, safety, aspect_ratio, seed, feedback) -> Dict[str, Any]:
         payload = {
             'input_image': image_b64,
             'prompt': prompt,
             'safety_tolerance': safety,
+            'aspect_ratio': aspect_ratio,
             'output_format': 'png'
         }
         
@@ -79,7 +79,7 @@ class Flux2EditingAlgorithm(BaseAIAlgorithm):
         image_b64 = self.read_image_as_base64(input_path)
         
         client = Flux2APIClient(api_key, model_idx)
-        return client.process_image(image_b64, prompt, safety, seed, feedback)
+        return client.process_image(image_b64, prompt, safety, aspect_ratio, seed, feedback)
 
     def _api_key_env_var(self): return "BFL_API_KEY"
     def name(self): return "flux_2_editing"

@@ -58,7 +58,7 @@ After a few seconds the georeferenced layer loads automatically.
 
 You can render any visible layer combination. This is raster, vector, or a mix of both — the plugin renders the canvas the very same way as it appears on screen to you. Additional text annotations are subject of the context window too.
 
-The plugin supports multiple aspect ratios. Yet, best results are achieved with square or common wide-screen tiles — the default is 1024×1024 pixels.
+The plugin supports multiple aspect ratios. Yet, best results are achieved with square or common wide-screen tiles — usually it is 2048×2048 pixels.
 
 Note, you are responsible for the rights of the imagery you send to the API.
 

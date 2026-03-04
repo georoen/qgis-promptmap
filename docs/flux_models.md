@@ -1,6 +1,14 @@
-# PromptMap — Model & Parameter Reference
+# Model & Parameter Reference
 
 All four algorithms share the same base pipeline (render canvas → send to API → georeference result). The parameters below are specific to each model.
+
+---
+
+## Shared UI behavior (all models)
+
+- The Processing dropdown controls **aspect ratio / input framing** for the canvas render.
+- It does **not** guarantee final output pixel dimensions.
+- Final pixel dimensions are determined by each provider/model response.
 
 ---
 
@@ -14,7 +22,7 @@ Image-to-image editing with strong prompt adherence. Best for segmentation, cart
 |---|---|---|---|
 | `prompt` | string | required | Text instruction |
 | `input_image` | base64 PNG | auto | Rendered QGIS canvas |
-| `aspect_ratio` | string | auto | Derived from tile size (e.g. `"1:1"`, `"16:9"`) |
+| `aspect_ratio` | string | auto | Derived from framing preset (e.g. `"1:1"`, `"16:9"`) |
 | `safety_tolerance` | int 0–6 | 2 | 0 = strict, 6 = permissive |
 | `seed` | int | optional | Set for reproducibility |
 | `output_format` | string | `"png"` | Always PNG for georeferencing |
@@ -32,7 +40,7 @@ High-quality stylisation with image prompt strength control. Best for thematic m
 | `prompt` | string | required | Text instruction |
 | `image_prompt` | base64 PNG | auto | Rendered QGIS canvas |
 | `image_prompt_strength` | float 0.1–1.0 | 0.8 | How strongly the input image guides the output |
-| `aspect_ratio` | string | auto | Derived from tile size |
+| `aspect_ratio` | string | auto | Derived from framing preset |
 | `safety_tolerance` | int 0–6 | 2 | 0 = strict, 6 = permissive |
 | `seed` | int | optional | Set for reproducibility |
 | `output_format` | string | `"png"` | Always PNG |
@@ -57,6 +65,7 @@ Five model variants selectable via dropdown. Useful for exploring the quality/sp
 |---|---|---|---|
 | `prompt` | string | required | Text instruction |
 | `input_image` | base64 PNG | auto | Rendered QGIS canvas |
+| `aspect_ratio` | string | auto | Derived from framing preset |
 | `safety_tolerance` | int 0–5 | 2 | 0 = strict, 5 = permissive |
 | `seed` | int | optional | Set for reproducibility |
 | `output_format` | string | `"png"` | Always PNG |
@@ -75,7 +84,7 @@ Multimodal model with strong contextual understanding. Accepts image + text and 
 |---|---|---|---|
 | `prompt` | string | required | Text instruction |
 | `inlineData` (image) | base64 PNG | auto | Rendered QGIS canvas |
-| `aspectRatio` | string | auto | Derived from tile size (e.g. `"1:1"`, `"16:9"`) |
+| `aspectRatio` | string | auto | Derived from framing preset (e.g. `"1:1"`, `"16:9"`) |
 | `imageSize` | string | `"2K"` | Fixed at 2K resolution |
 
 Official docs: <https://ai.google.dev/gemini-api/docs/image-generation>
