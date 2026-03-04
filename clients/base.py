@@ -364,60 +364,25 @@ def create_geotiff(image_path: str, extent: QgsRectangle, crs: QgsCoordinateRefe
     from osgeo import gdal
     
     geotiff_path = os.path.splitext(image_path)[0] + ".tif"
-    
-    # 1) Convert PNG -> GeoTIFF
-    ds = gdal.Translate(geotiff_path, image_path, format='GTiff')
-    
+
+    # Assign georeferencing directly while converting PNG -> GeoTIFF.
+    # Keep this explicit and close to gdal_translate CLI semantics.
+    srs = crs.authid() or crs.toWkt()
+    translate_options = [
+        "-of", "GTiff",
+        "-a_srs", srs,
+        "-a_ullr",
+        str(extent.xMinimum()),
+        str(extent.yMaximum()),
+        str(extent.xMaximum()),
+        str(extent.yMinimum()),
+    ]
+
+    ds = gdal.Translate(geotiff_path, image_path, options=translate_options)
     if ds is None:
-        raise Exception(f"Failed to create GeoTIFF at {geotiff_path}")
+        raise Exception(f"Failed to create georeferenced GeoTIFF at {geotiff_path}")
 
-    # 2) Persist georeference metadata directly on the TIFF dataset
-    if ds.RasterXSize <= 0 or ds.RasterYSize <= 0:
-        raise Exception("Failed to georeference GeoTIFF: invalid raster dimensions")
-
-    pixel_width = extent.width() / float(ds.RasterXSize)
-    pixel_height = extent.height() / float(ds.RasterYSize)
-    geotransform = (
-        extent.xMinimum(),
-        pixel_width,
-        0.0,
-        extent.yMaximum(),
-        0.0,
-        -pixel_height,
-    )
-
-    if ds.SetGeoTransform(geotransform) != gdal.CE_None:
-        raise Exception("Failed to write GeoTIFF geotransform metadata")
-
-    projection_wkt = crs.toWkt()
-    if not projection_wkt:
-        raise Exception("Failed to georeference GeoTIFF: empty CRS WKT")
-
-    if ds.SetProjection(projection_wkt) != gdal.CE_None:
-        raise Exception("Failed to write GeoTIFF projection metadata")
-
-    ds.FlushCache()
     ds = None  # Explicitly close dataset
-
-    # 3) Re-open and validate metadata written to disk
-    check_ds = gdal.Open(geotiff_path, gdal.GA_ReadOnly)
-    if check_ds is None:
-        raise Exception(f"Failed to reopen GeoTIFF for validation: {geotiff_path}")
-
-    check_projection = check_ds.GetProjectionRef()
-    check_geotransform = check_ds.GetGeoTransform()
-    check_ds = None
-
-    if not check_projection:
-        raise Exception("GeoTIFF was written without projection metadata")
-
-    if (
-        check_geotransform is None
-        or len(check_geotransform) != 6
-        or check_geotransform[1] == 0.0
-        or check_geotransform[5] == 0.0
-    ):
-        raise Exception("GeoTIFF was written without valid geotransform metadata")
 
     return geotiff_path
 
