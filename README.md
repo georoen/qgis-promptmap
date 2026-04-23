@@ -20,7 +20,7 @@ Isolate thematic features — construction sites, vegetation, water bodies — d
 ![Segmentation example](docs/segmentation.png)
 
 ```
-PROMPT: Finde die Baustelle im Bild. Markiere die Flächen in rot (#FF0000) und den übrigen Bildkontext in weiß (#000000).
+PROMPT: Find the construction site in the image. Mark the areas in red (#FF0000) and the remaining image context in white (#000000).
 ```
 
 
@@ -42,22 +42,22 @@ Visualise planning scenarios as photorealistic aerial views — add green roofs 
 ![Synthetic aerial imagery example](docs/synthImage_edit.png)
 
 ```
-PROMPT: Begrüne die Flachdächer der Gebäude. und platziere Solaranlagen auf den übrigen, schrägen Dächern
+PROMPT: Add green roofs to the flat-roofed buildings and place solar panels on the remaining pitched roofs.
 ```
 
 ![Synthetic aerial imagery example](docs/synthImage_add.png)
 
 ```
-PROMPT: Im Kontext von Raumplanung sollen die dunkelgrüne Ackerfläche durch eine Einfamilienhausbebauung im gleichen Stil wie der Rest des Bildes gefüllt werden.  Im Notfall bitte auch bereits bestehende Häuser entfernen, um diese Siedlung an die bereits existierende Straße anzubinden
+PROMPT: In the context of urban planning, replace the dark green agricultural field with single-family house development in the same style as the rest of the image. If necessary, also remove existing houses to connect this settlement to the already existing road.
 ```
 
 ![Synthetic aerial imagery example](docs/synthImage_remove.png)
 
 ```
-PROMPT: Für ein Stadtplanungsprojekt brauche ich eine photorealistische Darstellung. Bitte entferne das Shoppingcenter zentral im Bild. Füge stattdessen Landwirtschaftliche Flurstücke ein, wie sie in der Umgebung bereits vorkommen.
+PROMPT: For an urban planning project, I need a photorealistic representation. Please remove the shopping center in the center of the image. Instead, insert agricultural parcels as they already exist in the surroundings.
 ```
 
-**Prompt Quality:** For demonstration purpose, above prompts are very short. Howver, run experiments showed that there's a relationship bewteen input quality and recieved results. Check [prompt template](#text-prompt) below for details.
+**Prompt Quality:** For demonstration purposes, above prompts are very short. However, run experiments showed that there's a relationship between input quality and received results. Check [prompt template](#text-prompt) below for details.
 
 **Note on realism:** AI-generated aerial images can look very convincing. Always label AI-generated imagery clearly before sharing or publishing. Therefore, by default, every output is permanently watermarked with the PromptMap logo. As this is open source software, however, you are free to [change the watermark](docs/watermark.png) yourself.
 
