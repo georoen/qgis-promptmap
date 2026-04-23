@@ -1,4 +1,4 @@
-# PromptMap — Open, Multi-Provider AI Cartography for QGIS
+# PromptMap -- Open, Multi-Provider AI Cartography for QGIS
 
 **PromptMap** is a QGIS Processing plugin that connects your live map canvas to generative AI image APIs. Built on an open, provider-agnostic architecture, it gives you complete control over your AI workflows, data, and costs.
 
@@ -19,19 +19,47 @@ Isolate thematic features — construction sites, vegetation, water bodies — d
 
 ![Segmentation example](docs/segmentation.png)
 
+```
+PROMPT: Finde die Baustelle im Bild. Markiere die Flächen in rot (#FF0000) und den übrigen Bildkontext in weiß (#000000).
+```
+
+
 ### 2 — Cartographic Abstraction
 
 Turn raw imagery into a presentation-ready thematic map. Buildings become crisp black solids, roads pop as white lines, green areas turn solid emerald. Adjust the prompt to match your thematic focus.
 
 ![Cartography example](docs/cartography.png)
 
+```
+PROMPT: Based on the provided satellite image, generate a stylized and accurate outline map. Represent buildings as solid dark or black shapes with clean edges, roads as thin white lines or paths, and green areas (parks, lawns, vegetation) as solid green color blocks. Maintain realistic scale and proportions, and preserve the layout and spatial relationships from the satellite image. The overall composition should be minimal, clean, and suitable for urban or architectural site analysis — top-down view, flat graphic style, high contrast, and presentation-ready.
+```
+
+
 ### 3 — Synthetic Aerial Imagery
 
 Visualise planning scenarios as photorealistic aerial views — add green roofs and PV panels, insert new buildings, remove existing structures, or replace land use. The output is georeferenced and can be fed back into the next iteration.
 
-![Synthetic aerial imagery example](docs/synthImage.png)
+![Synthetic aerial imagery example](docs/synthImage_edit.png)
 
-> **Note on realism:** AI-generated aerial images can look very convincing. Always label AI-generated imagery clearly before sharing or publishing. Therefore, by default, every output is permanently watermarked with the PromptMap logo. As this is open source software, however, you are free to [change the watermark](docs/watermark.png) yourself.
+```
+PROMPT: Begrüne die Flachdächer der Gebäude. und platziere Solaranlagen auf den übrigen, schrägen Dächern
+```
+
+![Synthetic aerial imagery example](docs/synthImage_add.png)
+
+```
+PROMPT: Im Kontext von Raumplanung sollen die dunkelgrüne Ackerfläche durch eine Einfamilienhausbebauung im gleichen Stil wie der Rest des Bildes gefüllt werden.  Im Notfall bitte auch bereits bestehende Häuser entfernen, um diese Siedlung an die bereits existierende Straße anzubinden
+```
+
+![Synthetic aerial imagery example](docs/synthImage_remove.png)
+
+```
+PROMPT: Für ein Stadtplanungsprojekt brauche ich eine photorealistische Darstellung. Bitte entferne das Shoppingcenter zentral im Bild. Füge stattdessen Landwirtschaftliche Flurstücke ein, wie sie in der Umgebung bereits vorkommen.
+```
+
+**Prompt Quality:** For demonstration purpose, above prompts are very short. Howver, run experiments showed that there's a relationship bewteen input quality and recieved results. Check [prompt template](#text-prompt) below for details.
+
+**Note on realism:** AI-generated aerial images can look very convincing. Always label AI-generated imagery clearly before sharing or publishing. Therefore, by default, every output is permanently watermarked with the PromptMap logo. As this is open source software, however, you are free to [change the watermark](docs/watermark.png) yourself.
 
 
 ## Quickstart
