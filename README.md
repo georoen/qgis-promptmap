@@ -1,17 +1,18 @@
-# PromptMap — The PromptMapping Plugin
+# PromptMap — First AI Cartography Plugin for QGIS: Open, Multi-Provider, Privacy-Focused
 
 **PromptMap** is a QGIS Processing plugin that connects your live map canvas to generative AI image APIs. Capture what you see, write a prompt in plain language, and receive a georeferenced GeoTIFF layer back — in seconds.
 
 Supported APIs: **Black Forest Labs** (FLUX.1 Kontext, FLUX 1.1 Ultra, FLUX.2 Editing) and **Google Gemini** (Gemini 3 Pro Image). See [`docs/flux_models.md`](docs/flux_models.md) for the full parameter reference and API documentation links.
 
 
-## What can you do with it?
+## Use Cases
+Manipulating your map canvas using natural language prompts is versatile. From urban planning, image segmentation, and scientific applications.
 
-Three application modes, all driven by the same prompt-based workflow:
+Overall, the applications group into three modes -- Segmentation, Mapping, and Synthetic Aerial Imagery.
 
 ### 1 — Segmentation & Detection
 
-Isolate thematic features — construction sites, vegetation, water bodies — directly from satellite or aerial imagery. The AI understands spatial context and returns a clean, colour-coded mask that can be post-processed into vector polygons.
+Isolate thematic features — construction sites, vegetation, water bodies — directly from satellite or aerial imagery. The AI understands spatial context and returns a clean, color-coded mask that can be post-processed into vector polygons.
 
 ![Segmentation example](docs/segmentation.png)
 
@@ -27,7 +28,7 @@ Visualise planning scenarios as photorealistic aerial views — add green roofs 
 
 ![Synthetic aerial imagery example](docs/synthImage.png)
 
-> **Note on realism:** AI-generated aerial images can look very convincing. For this reason, every output is permanently watermarked with the PromptMap logo. The watermark cannot be removed. Always label AI-generated imagery clearly before sharing or publishing.
+> **Note on realism:** AI-generated aerial images can look very convincing. Always label AI-generated imagery clearly before sharing or publishing. Therefore, by default, every output is permanently watermarked with the PromptMap logo. As this is open source software, however, you are free to [change the watermark](docs/watermark.png) yourself.
 
 
 ## Quickstart
@@ -51,21 +52,45 @@ Visualise planning scenarios as photorealistic aerial views — add green roofs 
 
 After a few seconds the georeferenced layer loads automatically.
 
-![Processing dialog screenshot](docs/screenshot.png)
 
 
 ## Input
+![Processing dialog screenshot](docs/plugin_usage.png)
 
-You can render any visible layer combination. This is raster, vector, or a mix of both — the plugin renders the canvas the very same way as it appears on screen to you. Additional text annotations are subject of the context window too.
+### Graphic Geodata
 
-The plugin supports multiple aspect ratios. Yet, best results are achieved with square or common wide-screen tiles — usually it is 2048×2048 pixels.
+Moreover, you can render any visible layer combination. This is raster, vector, or a mix of both — the plugin renders the canvas exactly as it appears on screen.
 
-Note, you are responsible for the rights of the imagery you send to the API.
+Additional text annotations are also part of the context window.
+
+### Text Prompt
+To generate actionable spatial data, prompts must be technical specifications. Better prompts lead to better results. Preferably in English.
+
+Consider the following template for engineering prompt:
+```
+Task: [Segmentation/Mapping/Synthesis] of [Target Object].
+
+Context: [Provide additional descriptions relevant for task. E.g. regions of interest and local information].
+
+Styling: Use solid [Hex Code] for targets and [Hex Code] for background.
+
+Constraints: Maintain exact spatial alignment with input_image. [For thematic mappings add: No shadows, no textures, no color gradients.]
+```
+
+### Optional Parameters
+The plugin supports multiple aspect ratios. Best results are achieved with square or common widescreen tiles — usually 2048×2048 pixels.
+
+Some models support more parameters than others. The `seed` in FLUX models is particularly interesting to ensure reproducibility.
+
 
 ## Output 
 The plugin generates two output files:
-- A georeferenced GeoTIFF. 
-- The GeoPackage delinteaes the boundingbox aswell as the prompt, for reproducibility, and provenance in planning workflows.
+- Georeferenced GeoTIFF. The returned resolution does not correspond to input and is always three-channel (RGB).
+- GeoPackage of the bounding box with metadata for reproducibility and provenance in planning workflows and scientific applications.
+
+
+## Method
+![Processing dialog screenshot](docs/flowchart.png)
 
 
 ## Troubleshooting
@@ -78,16 +103,12 @@ The plugin generates two output files:
 | **Nothing loads** | Ensure at least one layer is visible on the canvas before running. |
 
 
-## Disclaimer & responsible use
+## Disclaimer & Responsible Use
 
 > **PromptMap is provided without warranty of any kind.** The author accepts no liability for the outputs generated by the connected AI models, for any decisions made on the basis of those outputs, or for any direct, indirect, or consequential damages arising from the use of this software.
 
-- PromptMap is an **interface** between QGIS and external AI APIs. It does not control, validate, or guarantee the content of model outputs.
-- The **user is solely responsible** for the image rights of the map canvas content forwarded to the API.
-- AI-generated results are **probabilistic** — identical inputs can produce different outputs.
-- Models may reproduce **cultural stereotypes** or geographic biases.
-- Image data and prompts **leave your local system** and are processed on external cloud infrastructure. Review the privacy policies of the respective API providers before use.
-- Synthetic aerial images must be **clearly labelled as AI-generated** before sharing or publication.
+- PromptMap is an **interface** between QGIS and external AI APIs. Image data and prompts leave your local system and are processed on external cloud infrastructure. PromptMap does not process, store, or transmit data on behalf of the user. All **API interactions occur directly between the user and the respective third-party provider** using user-supplied credentials. GDPR-compliant use depends on the user’s implementation of appropriate legal, technical, and organizational measures (e.g., data minimization, contractual safeguards, and internal policies). As a user **you are responsible for the image rights** of the map canvas content forwarded to the API.
+- AI-generated results are **probabilistic** — identical inputs can produce different outputs. Models may reproduce **cultural stereotypes** or geographic biases. Synthetic aerial images must be **clearly labeled as AI-generated** before sharing or publication.
 - PromptMap is not suitable for safety-critical, legal, or regulatory applications without independent expert verification.
 
 
@@ -95,7 +116,7 @@ The plugin generates two output files:
 
 If you use PromptMap in research or publications, please cite:
 
-> Staab, J. (2026). Vom Prompt zum Plan mit GenAI: Fotorealistische, synthetische Luftbilder im GIS als neues Werkzeug für Stadt- und Landschaftsplanung. *REAL CORP 2026 – 31st International Conference on Urban Planning and Regional Development in the Information Society*, Vienna, Austria, 22–25 March 2026.
+> Staab, J. (2026). Vom Prompt zum Plan mit GenAI: Fotorealistische, synthetische Luftbilder im GIS als neues Werkzeug für Stadt- und Landschaftsplanung. *REAL CORP 2026 – 31st International Conference on Urban Planning and Regional Development in the Information Society*, Vienna, Austria, 22–25 March 2026. [doi:10.48494/REALCORP2026.8149](https://doi.org/10.48494/REALCORP2026.8149)
 
 
 ## Support & contact
