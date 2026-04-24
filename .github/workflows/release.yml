@@ -1,0 +1,30 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract metadata
+        id: meta
+        run: |
+          echo "version=$(grep '^version=' metadata.txt | cut -d= -f2)" >> $GITHUB_OUTPUT
+          echo "name=$(grep '^name=' metadata.txt | cut -d= -f2)" >> $GITHUB_OUTPUT
+          echo "body=$(grep '^changelog=' metadata.txt | cut -d= -f2- | sed 's/^v[0-9.]*: //') - $(grep '^about=' metadata.txt | cut -d= -f2-)" >> $GITHUB_OUTPUT
+
+      - name: Create ZIP
+        run: zip -r qgis-promptmap.zip . -x '.git/*' '.github/*' 'docs/*' '*.pptx'
+
+      - name: Upload Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.version }}
+          name: ${{ steps.meta.outputs.name }} ${{ steps.meta.outputs.version }}
+          body: ${{ steps.meta.outputs.body }}
+          files: qgis-promptmap.zip
