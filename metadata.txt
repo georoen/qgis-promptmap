@@ -5,6 +5,7 @@ description=AI cartography for QGIS — Processing plugin to render your canvas,
 version=0.6.2
 author=Jeroen Staab
 email=email@jstaab.de
+license=GPL-2.0
 
 about=PromptMap -- Open, Multi-Provider AI Cartography for QGIS. Edit your current QGIS canvas using generative AI. Render the live map view, write a prompt, and receive a GeoTIFF back — ready to use as a new layer. Supports FLUX.1 Kontext, FLUX 1.1 Ultra, FLUX.2 Editing (Black Forest Labs) and Gemini 3 Pro Image (Google). Each result is georeferenced and documented with a GeoPackage containing model, prompt, timestamp and extent.
 
