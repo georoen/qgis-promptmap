@@ -147,6 +147,7 @@ PromptMap is not suitable for safety-critical, legal, or regulatory applications
 
 
 ## Troubleshooting
+
 | Symptom | Fix |
 |---|---|
 | **Hallucinations / wrong content** | Make sure your prompt matches what is visible on the canvas. |
