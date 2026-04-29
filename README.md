@@ -65,7 +65,7 @@ PROMPT: For an urban planning project, I need a photorealistic representation. P
 ## Quickstart
 
 1. **Install the plugin**  
-   Download the latest ZIP file [released here](https://github.com/georoen/qgis-promptmap/releases).  
+   Download the [latest ZIP file here](https://github.com/georoen/qgis-promptmap/archive/refs/heads/main.zip).  
    Open **QGIS → Plugins → Manage and Install… → Install from ZIP**, then enable **PromptMap**.  
    See [docs/install_ZIP.png](docs/install_ZIP.png) for a visual guide.
 
