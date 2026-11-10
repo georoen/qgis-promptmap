@@ -32,8 +32,8 @@ from qgis.core import (
 )
 from qgis import processing
 from qgis.utils import iface
-from PyQt5.QtCore import QSize, Qt, QVariant
-from PyQt5.QtGui import QImage, QPainter
+from qgis.PyQt.QtCore import QSize, Qt, QMetaType
+from qgis.PyQt.QtGui import QImage, QPainter
 
 class BaseAIAlgorithm(QgsProcessingAlgorithm):
     """Base class for AI processing algorithms."""
@@ -201,7 +201,7 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         settings.setDestinationCrs(iface.mapCanvas().mapSettings().destinationCrs())
         settings.setExtent(extent)
         settings.setOutputSize(QSize(width, height))
-        settings.setBackgroundColor(Qt.transparent)
+        settings.setBackgroundColor(Qt.GlobalColor.transparent)
         job = QgsMapRendererParallelJob(settings)
         job.start()
         job.waitForFinished()
@@ -259,7 +259,7 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         so it looks consistent across 512×512, 1024×1024, 2048×2048 and 1280×720 outputs.
         A padding of 2 % of the shorter dimension keeps it away from the edge.
 
-        Uses only PyQt5 (bundled with QGIS) – no additional dependencies required.
+        Uses only Qt (bundled with QGIS) – no additional dependencies required.
 
         Args:
             image_path: Path to the PNG to modify in-place.
@@ -279,7 +279,7 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
             return False  # output image unreadable – skip without breaking pipeline
 
         # QPainter requires a 32-bit ARGB format for correct alpha / opacity blending
-        image = image.convertToFormat(QImage.Format_ARGB32_Premultiplied)
+        image = image.convertToFormat(QImage.Format.Format_ARGB32_Premultiplied)
 
         # --- load watermark icon -----------------------------------------------
         # base.py lives in  <plugin_root>/clients/base.py  →  go up one level
@@ -295,8 +295,8 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
 
         watermark = watermark.scaled(
             wm_size, wm_size,
-            Qt.KeepAspectRatio,
-            Qt.SmoothTransformation,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
         )
 
         # --- position: bottom-right corner -------------------------------------
@@ -402,7 +402,7 @@ def write_metadata_gpkg(output_path: str, extent: QgsRectangle, crs, metadata: d
     # 1. Define Fields
     fields = QgsFields()
     for key in metadata.keys():
-        fields.append(QgsField(key, QVariant.String))
+        fields.append(QgsField(key, QMetaType.Type.QString))
         
     # 2. Initialize Writer
     save_options = QgsVectorFileWriter.SaveVectorOptions()

@@ -16,19 +16,27 @@ PNG is enforced throughout so transparency and georeferencing remain predictable
 2. Copy the folder into your QGIS profile's `python/plugins/` directory, restart QGIS, and enable **PromptMap**.
 
    ```bash
-   QGIS_PLUGINS_DIR="$HOME/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/"
-   rm -rf "$QGIS_PLUGINS_DIR/promptmap/"
-   rsync -av --exclude='.*' "$PWD" "$QGIS_PLUGINS_DIR"
+   # Linux, QGIS 4 default profile (use QGIS3 for QGIS 3).
+   QGIS_PLUGINS_DIR="$HOME/.local/share/QGIS/QGIS4/profiles/default/python/plugins"
+   # macOS: "$HOME/Library/Application Support/QGIS/QGIS4/profiles/default/python/plugins"
+   mkdir -p "$QGIS_PLUGINS_DIR/promptmap"
+   rsync -av --exclude='.*' --exclude='__pycache__' "$PWD/" "$QGIS_PLUGINS_DIR/promptmap/"
    ```
    Then restart QGIS.
 
-3. Test your changes with a live canvas inside QGIS. The Processing dialog requires a running QGIS instance — there are currently no automated unit tests (see below).
+3. Run the smoke test below, then test your changes with a live canvas inside QGIS. The Processing dialog requires a running QGIS instance.
 
 4. Document user-facing changes in `README.md` and keep the model parameter reference up to date in [`docs/flux_models.md`](flux_models.md).
 
 ## Tests
 
-The `tests/` directory was removed in v0.5.0 because the old test suite targeted a module (`flux_stylize_tiles`) that no longer exists. New tests covering [`clients/base.py`](../clients/base.py) and the API clients are planned for a future release. See [`docs/env_vars.md`](env_vars.md) for notes on what to test.
+Run the offline smoke test with a Python interpreter that has QGIS, Qt and GDAL installed:
+
+```bash
+QT_QPA_PLATFORM=offscreen python3 tests/smoke_qgis.py
+```
+
+It checks provider registration, map rendering, watermarking, GeoTIFF conversion and GeoPackage metadata export. It does not call paid AI APIs or test the interactive UI. See [`docs/env_vars.md`](env_vars.md) for live API setup.
 
 ## Filing issues / PRs
 

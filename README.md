@@ -2,6 +2,8 @@
 
 **PromptMap** is a QGIS Processing plugin that connects your live map canvas to generative AI image APIs. Built on an open, provider-agnostic architecture, it gives you complete control over your AI workflows, data, and costs.
 
+**QGIS 4 ready:** tested on QGIS 4.2.3 (Qt6). Minimum version: QGIS 3.20; QGIS 3 has not been retested for this release.
+
 ![Step-by-step image processing](docs/step_by_step.png)
 
 **Capture what you see, write a prompt in plain language, and receive a georeferenced GeoTIFF layer back — in seconds.**

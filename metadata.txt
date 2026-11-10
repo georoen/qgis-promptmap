@@ -1,8 +1,9 @@
 [general]
 name=PromptMap
 qgisMinimumVersion=3.20
+qgisMaximumVersion=4.99
 description=AI cartography for QGIS — Processing plugin to render your canvas, send a prompt, get a georeferenced map layer back. Powered by FLUX and Gemini APIs.
-version=0.6.2
+version=0.6.3
 author=Jeroen Staab
 email=email@jstaab.de
 license=GPL-2.0
@@ -11,7 +12,7 @@ about=PromptMap -- Open, Multi-Provider AI Cartography for QGIS. Edit your curre
 
 tracker=https://github.com/georoen/qgis-promptmap/issues
 repository=https://github.com/georoen/qgis-promptmap
-changelog=v0.6.2: Documentation updates (README review, originality comparison). v0.6.1: Review output aspect ratio and proportions. v0.6.0: Propose cleaner method with single source of truth. v0.5.2: Update to v0.5.2 architecture. v0.5.1: version bump. v0.5.0: Renamed to PromptMap — The PromptMap Plugin; added FLUX.2 Editing and Gemini 3 Pro Image; unified base pipeline; aspect-ratio-aware tiling; watermark; GeoTIFF + GPKG metadata output per result.
+changelog=v0.6.3: QGIS 4 support with Qt6-compatible imports, enums and metadata fields; smoke-tested on QGIS 4.2.3. v0.6.2: Documentation updates (README review, originality comparison). v0.6.1: Review output aspect ratio and proportions. v0.6.0: Propose cleaner method with single source of truth. v0.5.2: Update to v0.5.2 architecture. v0.5.1: version bump. v0.5.0: Renamed to PromptMap — The PromptMap Plugin; added FLUX.2 Editing and Gemini 3 Pro Image; unified base pipeline; aspect-ratio-aware tiling; watermark; GeoTIFF + GPKG metadata output per result.
 
 tags=raster,processing,ai,flux,gemini,promptmap,promptmapping,cartography,stylization,planning,segmentation,synthetic,aerial,edit,editing,image
 homepage=https://github.com/georoen/qgis-promptmap
