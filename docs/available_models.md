@@ -65,10 +65,11 @@ Five model variants selectable via dropdown. Useful for exploring the quality/sp
 |---|---|---|---|
 | `prompt` | string | required | Text instruction |
 | `input_image` | base64 PNG | auto | Rendered QGIS canvas |
-| `aspect_ratio` | string | auto | Derived from framing preset |
-| `safety_tolerance` | int 0–5 | 2 | 0 = strict, 5 = permissive |
+| `safety_tolerance` | int 0–5 | 2 | Accepted levels may depend on the endpoint and account |
 | `seed` | int | optional | Set for reproducibility |
 | `output_format` | string | `"png"` | Always PNG |
+
+Framing controls the input canvas. FLUX.2 does not accept an `aspect_ratio` parameter; PromptMap leaves the output dimensions to BFL for image edits.
 
 Official docs: <https://docs.bfl.ai/>
 

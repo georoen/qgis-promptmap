@@ -45,7 +45,25 @@ class BFLAPIClient:
         except requests.RequestException:
             return {"success": False, "error": "BFL submission failed; check the connection."}
         if not 200 <= response.status_code < 300:
-            return {"success": False, "error": f"BFL submission failed (HTTP {response.status_code})."}
+            message = f"BFL submission failed (HTTP {response.status_code})."
+            if response.status_code == 422:
+                try:
+                    body = response.json()
+                except ValueError:
+                    body = None
+                detail = body.get("detail") if isinstance(body, dict) else None
+                # The server may echo the prompt or base64 image in its validation report.
+                fields = set()
+                if isinstance(detail, list):
+                    for item in detail:
+                        location = item.get("loc") if isinstance(item, dict) else None
+                        if isinstance(location, list):
+                            fields.update(part for part in location if isinstance(part, str) and part in payload)
+                if fields:
+                    message += f" Rejected fields: {', '.join(sorted(fields))}."
+                else:
+                    message += " BFL rejected the request parameters without identifying a field."
+            return {"success": False, "error": message}
         try:
             submitted = response.json()
         except ValueError:

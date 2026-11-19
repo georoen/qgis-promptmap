@@ -26,11 +26,11 @@ class Flux2APIClient(BFLAPIClient):
         super().__init__(api_key, endpoint)
 
     def process_image(self, image_b64, prompt, safety, aspect_ratio, seed, feedback) -> Dict[str, Any]:
+        # FLUX.2 accepts width and height, not aspect_ratio. Leave output sizing to BFL.
         payload = {
             'input_image': image_b64,
             'prompt': prompt,
             'safety_tolerance': safety,
-            'aspect_ratio': aspect_ratio,
             'output_format': 'png'
         }
         
@@ -73,7 +73,7 @@ class Flux2EditingAlgorithm(BaseAIAlgorithm):
     def execute_api(self, api_key, input_path, prompt, aspect_ratio, parameters, context, feedback):
         model_idx = self.parameterAsEnum(parameters, self.MODEL, context)
         safety = self.parameterAsInt(parameters, self.SAFETY, context)
-        seed = self.parameterAsInt(parameters, self.SEED, context) if parameters.get(self.SEED) else None
+        seed = self.parameterAsInt(parameters, self.SEED, context) if parameters.get(self.SEED) not in (None, '') else None
         
         # Read main input image (map canvas)
         image_b64 = self.read_image_as_base64(input_path)

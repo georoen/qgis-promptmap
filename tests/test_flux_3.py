@@ -97,6 +97,29 @@ class Flux3Tests(unittest.TestCase):
 
     @patch('requests.post')
     @patch('requests.get')
+    def test_flux2_uses_documented_fields_and_reports_validation_safely(self, get, post):
+        client = Flux2APIClient('test-key', 0)
+        post.return_value = response({'detail': [
+            {'loc': ['body', 'safety_tolerance'], 'msg': 'test-key private prompt', 'input': 'private-image'},
+            {'loc': None},
+        ]}, status=422)
+        result = client.process_image('private-image', 'private prompt', 2, '16:9', 0, None)
+        self.assertEqual(post.call_args.kwargs['json'], {
+            'input_image': 'private-image', 'prompt': 'private prompt',
+            'safety_tolerance': 2, 'output_format': 'png', 'seed': 0,
+        })
+        self.assertEqual(result, {
+            'success': False,
+            'error': 'BFL submission failed (HTTP 422). Rejected fields: safety_tolerance.',
+        })
+        post.return_value = response({'detail': 'private prompt'}, status=422)
+        result = client.process_image('private-image', 'private prompt', 2, '1:1', None, None)
+        self.assertNotIn('private', result['error'])
+        self.assertNotIn('seed', post.call_args.kwargs['json'])
+        get.assert_not_called()
+
+    @patch('requests.post')
+    @patch('requests.get')
     def test_polling_does_not_forward_credentials_to_untrusted_url(self, get, post):
         for url in (None, 'http://api.bfl.ai/task', 'https://api.bfl.ai.example.com/task',
                     'https://other.example.com\\@api.bfl.ai/task'):
