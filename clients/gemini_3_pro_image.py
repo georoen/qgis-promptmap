@@ -15,7 +15,7 @@ MODELS = (
     ("Nano Banana Pro — Gemini 3 Pro Image", "gemini-3-pro-image", "2K"),
     ("Nano Banana 2.1 — Balanced", "gemini-nano-banana-2.1", "2K"),
     ("Nano Banana 2 — Gemini 3.1 Flash Image", "gemini-3.1-flash-image", "2K"),
-    ("Nano Banana 2 Lite — Fast previews", "gemini-3.1-flash-lite-image", "1024px"),
+    ("Nano Banana 2 Lite — Fast previews", "gemini-3.1-flash-lite-image", "1K"),
     ("Nano Banana — Gemini 2.5 Flash Image (Legacy)", "gemini-2.5-flash-image", None),
 )
 STANDARD_RATIOS = {"1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"}

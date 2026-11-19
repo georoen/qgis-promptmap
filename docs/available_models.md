@@ -85,7 +85,7 @@ Select a model under **Google Gemini API → Gemini Image Editing (Nano Banana) 
 | Nano Banana Pro (default) | `gemini-3-pro-image` | 2K JPEG → local PNG | Complex instructions, detailed cartography and planning scenarios |
 | Nano Banana 2.1 | `gemini-nano-banana-2.1` | 2K JPEG → local PNG | Balanced general-purpose mapping and synthetic aerial edits |
 | Nano Banana 2 | `gemini-3.1-flash-image` | 2K JPEG → local PNG | Alternative balanced model for comparisons |
-| Nano Banana 2 Lite | `gemini-3.1-flash-lite-image` | 1K JPEG (`1024px`) → local PNG | Fast previews, simple recolouring and local edits |
+| Nano Banana 2 Lite | `gemini-3.1-flash-lite-image` | 1K JPEG (`1K`) → local PNG | Fast previews, simple recolouring and local edits |
 | Original Nano Banana (legacy) | `gemini-2.5-flash-image` | Native resolution, approximately 1K JPEG → local PNG | Legacy comparisons |
 
 These recommendations follow Google's model descriptions, not a PromptMap quality benchmark. Lite prioritizes speed and cost and is not optimized for multiple references or sequential editing. No model guarantees accurate segmentation or preservation of spatial geometry.
@@ -128,7 +128,7 @@ Official documentation:
 - [Nano Banana 2 Lite](https://aistudio.google.com/docs/models/gemini-3.1-flash-lite-image)
 - [Original Nano Banana](https://aistudio.google.com/docs/models/gemini-2.5-flash-image)
 
-The Lite model page specifies `1024px` and contains conflicting aspect-ratio descriptions; PromptMap conservatively enables only the standard ratios. Request construction and response parsing are tested offline; live model availability, Lite parameter acceptance and comparative quality still require paid API validation.
+The Lite model page specifies `1024px`, but the live endpoint rejects this value and lists `512`, `1K`, `2K` and `4K` as API resolution values. PromptMap requests `1K` for Lite; the shared API enum does not establish which other resolutions Lite actually supports. Its documentation also contains conflicting aspect-ratio descriptions, so PromptMap conservatively enables only the standard ratios. Request construction and response parsing are tested offline; successful live Lite generation and comparative quality still require paid API validation.
 
 ---
 

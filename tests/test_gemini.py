@@ -142,6 +142,15 @@ class GeminiTests(unittest.TestCase):
                 self.assertEqual(kwargs['timeout'], 120)
 
     @patch('requests.post')
+    def test_lite_uses_api_resolution_enum(self, post):
+        post.return_value = Mock(status_code=200, json=completed)
+        result = Gemini3ProImageAPIClient('test-key', 3).process_image(PNG, 'Edit', '16:9', None)
+        self.assertTrue(result['success'])
+        payload = post.call_args.kwargs['json']
+        self.assertEqual(payload['model'], 'gemini-3.1-flash-lite-image')
+        self.assertEqual(payload['response_format']['image_size'], '1K')
+
+    @patch('requests.post')
     def test_invalid_responses(self, post):
         cases = [
             {}, {'status': 'failed'}, {'status': 'completed', 'steps': []},
