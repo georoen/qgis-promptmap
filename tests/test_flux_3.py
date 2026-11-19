@@ -117,6 +117,17 @@ class Flux3Tests(unittest.TestCase):
         self.assertNotIn('private', result['error'])
         self.assertNotIn('seed', post.call_args.kwargs['json'])
         get.assert_not_called()
+        # BFL returns a plain-string detail for an auth/key-format error; surface it
+        # so the user sees the real reason instead of a generic rejection.
+        post.return_value = response({'detail': 'Invalid API key format'}, status=422)
+        result = client.process_image('private-image', 'green the roofs', 2, '1:1', None, None)
+        self.assertIn('Invalid API key format', result['error'])
+        self.assertNotIn('green the roofs', result['error'])
+        get.assert_not_called()
+        # A detail that reproduces the submitted prompt is still suppressed.
+        post.return_value = response({'detail': 'green the roofs is not allowed'}, status=422)
+        result = client.process_image('private-image', 'green the roofs', 2, '1:1', None, None)
+        self.assertNotIn('green the roofs', result['error'])
 
     @patch('requests.post')
     @patch('requests.get')

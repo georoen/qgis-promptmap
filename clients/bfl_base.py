@@ -54,13 +54,23 @@ class BFLAPIClient:
                 detail = body.get("detail") if isinstance(body, dict) else None
                 # The server may echo the prompt or base64 image in its validation report.
                 fields = set()
+                # A plain-string detail is a provider message (e.g. "Invalid API key
+                # format"); surface it so the user sees the real reason instead of a
+                # generic rejection, but only when it does not reproduce user content.
+                reason = None
                 if isinstance(detail, list):
                     for item in detail:
                         location = item.get("loc") if isinstance(item, dict) else None
                         if isinstance(location, list):
                             fields.update(part for part in location if isinstance(part, str) and part in payload)
+                elif isinstance(detail, str) and detail:
+                    prompt = payload.get("prompt")
+                    if (not prompt or prompt not in detail) and len(detail) <= 200:
+                        reason = detail
                 if fields:
                     message += f" Rejected fields: {', '.join(sorted(fields))}."
+                elif reason:
+                    message += f" {reason}"
                 else:
                     message += " BFL rejected the request parameters without identifying a field."
             return {"success": False, "error": message}
