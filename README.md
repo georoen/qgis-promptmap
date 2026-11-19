@@ -125,7 +125,7 @@ Some models support more parameters than others. The `seed` in FLUX models is pa
 ## Output 
 The plugin generates two output files:
 - Georeferenced GeoTIFF. The returned resolution does not correspond to input and is always three-channel (RGB).
-- GeoPackage of the bounding box with metadata for reproducibility and provenance in planning workflows and scientific applications.
+- GeoPackage of the bounding box with provenance metadata. If returned by the API, it also records token usage (Gemini/OpenAI) or credit cost (Black Forest Labs).
 
 
 ## Method
@@ -133,7 +133,7 @@ Low-key combination of GIS processing and REST calls.
 
 ![cap1](docs/flowchart.png)
 
-Supported providers include **Black Forest Labs**, **Google Gemini**, and **OpenAI**. OpenAI Image Editing offers **GPT-Image-2.6 Sunburst** and **Flare**, with low/medium/high quality and complexity settings. Gemini's model dropdown offers **Nano Banana Pro, Nano Banana 2.1, Nano Banana 2, Nano Banana 2 Lite, and original Nano Banana**. Choose quality, balanced editing, fast previews, or legacy comparisons without changing your mapping workflow. See [`docs/available_models.md`](docs/available_models.md) for model IDs, requested resolutions, limitations, and parameters.
+Supported providers include **Black Forest Labs**, **Google Gemini**, and **OpenAI**. The **FLUX 3 Image Editing** tool offers **FLUX 3 Image** and **FLUX 3 Image Klein**. OpenAI Image Editing offers **GPT-Image-2.6 Sunburst** and **Flare**, with low/medium/high quality and complexity settings. Gemini's model dropdown offers **Nano Banana Pro, Nano Banana 2.1, Nano Banana 2, Nano Banana 2 Lite, and original Nano Banana**. Choose quality, balanced editing, fast previews, or legacy comparisons without changing your mapping workflow. See [`docs/available_models.md`](docs/available_models.md) for model IDs, requested resolutions, limitations, and parameters.
 
 | Your Priority | PromptMap | Other Solutions |
 |---------------|-----------|----------------|

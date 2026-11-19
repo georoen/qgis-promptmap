@@ -176,6 +176,9 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         usage = result.get("usage")
         if isinstance(usage, dict) and usage:
             metadata["token_usage"] = json.dumps(usage, sort_keys=True)
+        if "cost_credits" in result:
+            metadata["cost_credits"] = result["cost_credits"]
+            metadata["cost_basis"] = result["cost_basis"]
 
         try:
             gpkg_path = write_metadata_gpkg(geotiff_path, render_extent, crs, metadata)

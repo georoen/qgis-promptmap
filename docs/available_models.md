@@ -1,6 +1,6 @@
 # Model & Parameter Reference
 
-All five Processing algorithms share the same base pipeline (render canvas → send to API → georeference result). FLUX.2, Gemini and OpenAI expose model dropdowns. PromptMap 0.7.0 offers five Gemini and two OpenAI models alongside the FLUX models below.
+All six Processing algorithms share the same base pipeline (render canvas → send to API → georeference result). FLUX.2, FLUX 3, Gemini and OpenAI expose model dropdowns. PromptMap 0.7.0 offers five Gemini and two OpenAI models alongside the FLUX models below.
 
 ---
 
@@ -71,6 +71,24 @@ Five model variants selectable via dropdown. Useful for exploring the quality/sp
 | `output_format` | string | `"png"` | Always PNG |
 
 Official docs: <https://docs.bfl.ai/>
+
+---
+
+### FLUX 3 Image Editing
+
+| Model | API endpoint |
+|---|---|
+| FLUX 3 Image (default) | `/v1/flux-3-image` |
+| FLUX 3 Image Klein | `/v1/flux-3-image-klein` |
+
+Both use the BFL EU API (`https://api.eu.bfl.ai`) and the same BFL API key as FLUX.2. PromptMap sends the text prompt and one base64 PNG in `images`, then polls the returned `polling_url`.
+
+- **Framing:** requests the rendered input's exact width and height: 2048 × 2048 for Square, 1280 × 720 for Widescreen. Full-canvas sizes must meet the model's dimension limits. Outputs with a different aspect ratio are rejected rather than stretched onto the original extent.
+- **FLUX 3 Image:** web/image search grounding is disabled. Output format is set by the provider; PromptMap converts supported raster results to PNG locally. This cannot recover detail lost to JPEG compression.
+- **Klein:** requests PNG directly. Safety, seed and denoising steps use provider defaults where supported. Multiple references and video are not exposed.
+- **BFL cost metadata:** when the API reports a cost, the GeoPackage records `cost_credits` and `cost_basis`. The final response's settled cost takes priority over the quoted submission cost. Missing costs are omitted, not recorded as zero.
+
+API references: [Image](https://docs.bfl.ai/api-reference/utility/generate-an-image-with-flux-3) · [Klein](https://docs.bfl.ai/api-reference/utility/generate-an-image-with-flux-3-klein). Both new models are tested offline; live access, exact size acceptance and cost still need a paid smoke test.
 
 ---
 

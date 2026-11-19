@@ -1,79 +1,98 @@
-"""
-Base client for BFL (Black Forest Labs) API.
-"""
+"""Shared HTTP client for Black Forest Labs image APIs."""
 
+import math
 import time
-import logging
-from typing import Dict, Any, Optional
+from urllib.parse import urlsplit
+
+
+def is_bfl_url(url):
+    """Only contact HTTPS URLs on BFL's documented domain."""
+    if not isinstance(url, str) or "\\" in url or any(c.isspace() for c in url):
+        return False
+    try:
+        parsed = urlsplit(url)
+        host = parsed.hostname or ""
+        return (parsed.scheme == "https" and parsed.username is None and parsed.password is None
+                and parsed.port in (None, 443) and host.endswith(".bfl.ai"))
+    except ValueError:
+        return False
+
+
+def valid_cost(value):
+    return type(value) in (int, float) and 0 <= value < math.inf
+
 
 class BFLAPIClient:
-    """Base class for BFL API communication."""
-    
-    def __init__(self, api_key: str, endpoint: str, poll_endpoint: str = "https://api.eu.bfl.ai/v1/get_result"):
+    """Submit once, then poll the result URL returned by BFL."""
+
+    def __init__(self, api_key: str, endpoint: str):
         self.api_key = api_key
         self.endpoint = endpoint
-        self.poll_endpoint = poll_endpoint
 
-    def post_and_poll(self, payload: Dict[str, Any], feedback) -> Dict[str, Any]:
-        """Sends a request and polls for the result."""
-        try: import requests
-        except ImportError: return {"success": False, "error": "Python 'requests' library not found."}
-
-        def log(msg):
-            if feedback: feedback.pushInfo(msg)
-
-        # 1. Send Request
-        log(f"🚀 Sending request to {self.endpoint.split('/')[-1]}...")
+    def post_and_poll(self, payload, feedback):
         try:
-            # BFL uses 'x-key' header
-            headers = {
-                'x-key': self.api_key,
-                'accept': 'application/json',
-                'Content-Type': 'application/json'
-            }
-            response = requests.post(
-                self.endpoint, 
-                json=payload, 
-                headers=headers, 
-                timeout=60
-            )
-            response.raise_for_status()
-            result = response.json()
-            task_id = result.get("id")
-            polling_url = result.get("polling_url") or f"{self.poll_endpoint}?id={task_id}"
-            log(f"✅ Request accepted. Task ID: {task_id}")
-        except Exception as e:
-            return {"success": False, "error": f"API Request failed: {e}"}
+            import requests
+        except ImportError:
+            return {"success": False, "error": "Python 'requests' library not found."}
 
-        # 2. Poll for Result
-        log("⏳ Waiting for processing...")
-        start_time = time.time()
-        while time.time() - start_time < 600: # 10 minutes timeout
-            if feedback and feedback.isCanceled(): 
+        if feedback and feedback.isCanceled():
+            return {"success": False, "error": "Canceled."}
+        if feedback:
+            feedback.pushInfo(f"Sending request to {self.endpoint.split('/')[-1]}...")
+        headers = {"x-key": self.api_key, "accept": "application/json"}
+        try:
+            response = requests.post(self.endpoint, json=payload, headers=headers, timeout=60, allow_redirects=False)
+        except requests.RequestException:
+            return {"success": False, "error": "BFL submission failed; check the connection."}
+        if not 200 <= response.status_code < 300:
+            return {"success": False, "error": f"BFL submission failed (HTTP {response.status_code})."}
+        try:
+            submitted = response.json()
+        except ValueError:
+            return {"success": False, "error": "BFL returned an unreadable submission response."}
+        polling_url = submitted.get("polling_url") if isinstance(submitted, dict) else None
+        if not is_bfl_url(polling_url):
+            return {"success": False, "error": "BFL did not return a trusted polling URL."}
+        submitted_cost = submitted.get("cost")
+
+        if feedback:
+            feedback.pushInfo("Waiting for BFL processing...")
+        deadline = time.monotonic() + 600
+        while time.monotonic() < deadline:
+            if feedback and feedback.isCanceled():
                 return {"success": False, "error": "Canceled."}
-            
             try:
-                poll_resp = requests.get(polling_url, headers={'x-key': self.api_key}, timeout=30)
-                poll_data = poll_resp.json()
-                status = poll_data.get("status")
-                
-                if status == "Ready":
-                    log("✨ Processing complete!")
-                    # Result structure might vary, but usually it's in result -> sample
-                    if "result" in poll_data and "sample" in poll_data["result"]:
-                        return {"success": True, "url": poll_data["result"]["sample"]}
-                    else:
-                        # Fallback or specific handling could be added here
-                        return {"success": True, "data": poll_data["result"]} 
-                        
-                elif status == "Failed":
-                    return {"success": False, "error": f"API Error: {poll_data.get('message')}"}
-                elif status == "Request Moderated":
-                     return {"success": False, "error": f"Request Moderated: {poll_data.get('message')}"}
-                
-                time.sleep(1)
-            except Exception as e:
-                # log(f"Polling error: {e}") # Optional: log polling errors
+                response = requests.get(polling_url, headers=headers, timeout=30, allow_redirects=False)
+            except requests.RequestException:
                 time.sleep(2)
-                
-        return {"success": False, "error": "Timeout."}
+                continue
+            try:
+                body = response.json()
+            except ValueError:
+                body = None
+            status = body.get("status") if isinstance(body, dict) else None
+            if status in ("Error", "Failed", "Request Moderated", "Content Moderated", "Task not found", "No Card Generated"):
+                return {"success": False, "error": f"BFL task stopped: {status}."}
+            if response.status_code == 429 or response.status_code >= 500:
+                time.sleep(2)
+                continue
+            if not 200 <= response.status_code < 300:
+                return {"success": False, "error": f"BFL polling failed (HTTP {response.status_code})."}
+            if status == "Ready":
+                sample = body.get("result")
+                if isinstance(sample, dict) and is_bfl_url(sample.get("sample")):
+                    result = {"success": True, "url": sample["sample"]}
+                elif isinstance(sample, str) and sample:
+                    result = {"success": True, "data": sample}
+                else:
+                    return {"success": False, "error": "BFL returned no usable image result."}
+                settled = body.get("cost")
+                if valid_cost(settled):
+                    result.update(cost_credits=settled, cost_basis="settled")
+                elif valid_cost(submitted_cost):
+                    result.update(cost_credits=submitted_cost, cost_basis="submission")
+                return result
+            if status not in ("Pending", "Reasoning", "Generating"):
+                return {"success": False, "error": "BFL returned an unrecognized task status."}
+            time.sleep(1)
+        return {"success": False, "error": "Timed out waiting for BFL. The provider may still process or charge for the request."}
