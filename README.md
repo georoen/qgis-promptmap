@@ -2,7 +2,7 @@
 
 **Your map. Your prompt. Your choice of AI model.**
 
-**PromptMap 0.7.0** is an open-source, provider- and model-agnostic QGIS Processing plugin that connects your live map canvas to supported generative AI image APIs. Choose between **Black Forest Labs (FLUX)** and **Google Gemini** models without leaving QGIS or changing your mapping workflow.
+**PromptMap 0.7.0** is an open-source, provider- and model-agnostic QGIS Processing plugin that connects your live map canvas to supported generative AI image APIs. Choose between **Black Forest Labs (FLUX)**, **Google Gemini**, and **OpenAI** models without leaving QGIS or changing your mapping workflow.
 
 - **No vendor lock-in:** choose the supported provider and model that fit your task, quality needs, and budget.
 - **Bring your own API key:** requests go directly to your chosen provider—no PromptMap account or intermediary service.
@@ -80,13 +80,14 @@ PROMPT: For an urban planning project, I need a photorealistic representation. P
    PromptMap connects to external AI APIs — you need to register and obtain an API key directly from the respective provider:
    - **Black Forest Labs (FLUX models):** <https://api.bfl.ai/>
    - **Google (Gemini models):** <https://aistudio.google.com/>
+   - **OpenAI (GPT Image models):** <https://platform.openai.com/api-keys>
 
    API keys are entered in the Processing dialog. QGIS remembers your last parameters via **Processing** → **History**, so you can re-run without re-entering the key. For persistent storage, set an environment variable as described in [docs/env_vars.md](docs/env_vars.md).
 
    > Need help getting started? Pick a free onboarding session at [meet.jstaab.de](https://meet.jstaab.de).
 
 3. **Run**  
-   Open **Processing Toolbox → PromptMap → Black Forest Labs API** (or **Google Gemini API**), pick a model, paste your API key, write a prompt, and hit **Run**.
+   Open **Processing Toolbox → PromptMap → Black Forest Labs API** (or **Google Gemini API** / **OpenAI API**), pick a model, paste your API key, write a prompt, and hit **Run**.
 
    After a few seconds the georeferenced layer loads automatically.
 
@@ -132,7 +133,7 @@ Low-key combination of GIS processing and REST calls.
 
 ![cap1](docs/flowchart.png)
 
-Supported providers include **Black Forest Labs** and **Google Gemini**. Gemini's model dropdown offers **Nano Banana Pro, Nano Banana 2.1, Nano Banana 2, Nano Banana 2 Lite, and original Nano Banana**. Choose quality, balanced editing, fast previews, or legacy comparisons without changing your mapping workflow. See [`docs/available_models.md`](docs/available_models.md) for model IDs, requested resolutions, limitations, and parameters.
+Supported providers include **Black Forest Labs**, **Google Gemini**, and **OpenAI**. OpenAI Image Editing offers **GPT-Image-2.6 Sunburst** and **Flare**, with low/medium/high quality and complexity settings. Gemini's model dropdown offers **Nano Banana Pro, Nano Banana 2.1, Nano Banana 2, Nano Banana 2 Lite, and original Nano Banana**. Choose quality, balanced editing, fast previews, or legacy comparisons without changing your mapping workflow. See [`docs/available_models.md`](docs/available_models.md) for model IDs, requested resolutions, limitations, and parameters.
 
 | Your Priority | PromptMap | Other Solutions |
 |---------------|-----------|----------------|

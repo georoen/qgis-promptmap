@@ -1,6 +1,6 @@
 # Model & Parameter Reference
 
-All four Processing algorithms share the same base pipeline (render canvas → send to API → georeference result). FLUX.2 and Gemini expose model dropdowns. PromptMap 0.7.0 offers five Gemini models alongside the FLUX models below.
+All five Processing algorithms share the same base pipeline (render canvas → send to API → georeference result). FLUX.2, Gemini and OpenAI expose model dropdowns. PromptMap 0.7.0 offers five Gemini and two OpenAI models alongside the FLUX models below.
 
 ---
 
@@ -128,7 +128,50 @@ Official documentation:
 - [Nano Banana 2 Lite](https://aistudio.google.com/docs/models/gemini-3.1-flash-lite-image)
 - [Original Nano Banana](https://aistudio.google.com/docs/models/gemini-2.5-flash-image)
 
-The Lite model page specifies `1024px`, but the live endpoint rejects this value and lists `512`, `1K`, `2K` and `4K` as API resolution values. PromptMap requests `1K` for Lite; the shared API enum does not establish which other resolutions Lite actually supports. Its documentation also contains conflicting aspect-ratio descriptions, so PromptMap conservatively enables only the standard ratios. Request construction and response parsing are tested offline; successful live Lite generation and comparative quality still require paid API validation.
+The Lite model page specifies `1024px`, but the live endpoint rejects this value and lists `512`, `1K`, `2K` and `4K` as API resolution values. PromptMap requests `1K` for Lite; the shared API enum does not establish which other resolutions Lite actually supports. Its documentation also contains conflicting aspect-ratio descriptions, so PromptMap conservatively enables only the standard ratios. Request construction and response parsing are tested offline. Live Lite generation succeeded with the `1K` setting.
+
+---
+
+## OpenAI API
+
+### OpenAI Image Editing
+
+Under **OpenAI API → OpenAI Image Editing**, choose:
+
+| Model | API model ID | Positioning in OpenAI's documentation |
+|---|---|---|
+| GPT-Image-2.6 Sunburst (default) | `gpt-image-2.6-sunburst` | Detailed compositions and image editing |
+| GPT-Image-2.6 Flare | `gpt-image-2.6-flare` | Fast iteration |
+
+Both use **`POST https://api.openai.com/v1/images/edits`**, not the Responses API image tool.
+
+| Field | Value in PromptMap |
+|---|---|
+| Authentication | `Authorization: Bearer <OPENAI_API_KEY>` |
+| `image[]` | Multipart upload of the rendered PNG |
+| `prompt` | User instruction |
+| `model` | Selected model ID |
+| `n` | `1` |
+| `quality` | `low`, `medium` (default), or `high` |
+| `complexity` | `low`, `medium`, or `high` (API default, retained) |
+| `size` | Exact rendered input dimensions |
+| `output_format` | `png` |
+
+The Square preset requests **2048×2048**; Widescreen requests **1280×720**, preserving the 16:9 input rather than silently substituting a 3:2 output. Full-canvas dimensions must be divisible by 16, total 655,360–8,294,400 pixels, have edges no larger than 3840 pixels, and aspect ratio 1:3–3:1. Unsupported dimensions are rejected before an API call; they are not rounded or stretched.
+
+The response is read from `data[0].b64_json`. PNG decoding and the returned aspect ratio are validated before georeferencing. API-reported `usage` is saved unchanged as JSON in the GeoPackage's `token_usage` field. No dollar charge is inferred from those counts.
+
+Quality affects price and latency; complexity can also affect latency and unwanted changes. Complexity controls planning independently of rendering quality; its default remains `high`, matching the API. Lower modes are available for experiments, not assumed to improve edit accuracy; masks, multiple references, markup layers, animation, SVG output and conversational state are not exposed. Requests have a 180-second timeout and are not automatically retried. Canceling or timing out does not guarantee the provider stopped processing or charging.
+
+An OpenAI API project with image-model access, sufficient billing and possibly organization verification is required; a ChatGPT subscription alone is not an API billing account. Keys are never bundled with the plugin.
+
+Current live docs were checked on 19 November 2026. The guide's introductory examples still name 2.5, while the edit reference defaults to 2.6 Sunburst and explicitly lists both 2.6 models. The implementation follows the edit reference and the linked 2.6 model pages. Request construction and response handling are tested offline. Both models also returned 2048 × 2048 PNGs in live tests at each of the three quality levels with `high` complexity.
+
+Sources:
+- [Image edit API reference](https://developers.openai.com/api/reference/resources/images/methods/edit)
+- [Image generation guide](https://developers.openai.com/api/docs/guides/image-generation)
+- [Sunburst](https://developers.openai.com/api/docs/models/gpt-image-2.6-sunburst)
+- [Flare](https://developers.openai.com/api/docs/models/gpt-image-2.6-flare)
 
 ---
 
@@ -138,5 +181,6 @@ The Lite model page specifies `1024px`, but the live endpoint rejects this value
 |---|---|---|
 | Black Forest Labs | <https://api.bfl.ai/> | `BFL_API_KEY` |
 | Google Gemini | <https://aistudio.google.com/> | `GEMINI_API_KEY` |
+| OpenAI | <https://platform.openai.com/api-keys> | `OPENAI_API_KEY` |
 
 Set the environment variable before starting QGIS and PromptMap will pre-fill the API Key field automatically.
