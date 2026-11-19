@@ -4,6 +4,8 @@ import base64
 import binascii
 
 from qgis.core import QgsProcessingParameterEnum
+from qgis.PyQt.QtCore import QBuffer, QIODevice
+from qgis.PyQt.QtGui import QImage
 
 from .base import BaseAIAlgorithm
 
@@ -47,7 +49,7 @@ class Gemini3ProImageAPIClient:
         if feedback and feedback.isCanceled():
             return {"success": False, "error": "Canceled."}
 
-        image_format = {"type": "image", "mime_type": "image/png", "aspect_ratio": aspect_ratio}
+        image_format = {"type": "image", "mime_type": "image/jpeg", "aspect_ratio": aspect_ratio}
         if self.image_size:
             image_format["image_size"] = self.image_size
         payload = {
@@ -86,11 +88,21 @@ class Gemini3ProImageAPIClient:
             if not images:
                 return {"success": False, "error": "No image found in Gemini response (possibly blocked)."}
             generated = images[-1]
-            if generated.get("mime_type") != "image/png":
-                return {"success": False, "error": "Gemini returned a non-PNG image."}
-            data = generated["data"]
-            if not base64.b64decode(data, validate=True).startswith(b"\x89PNG\r\n\x1a\n"):
-                return {"success": False, "error": "Gemini returned invalid PNG data."}
+            mime_type = generated.get("mime_type")
+            if mime_type not in {"image/jpeg", "image/png"}:
+                return {"success": False, "error": "Gemini returned an unsupported image format."}
+            image = QImage.fromData(
+                base64.b64decode(generated["data"], validate=True),
+                "JPEG" if mime_type == "image/jpeg" else "PNG",
+            )
+            if image.isNull():
+                return {"success": False, "error": "Gemini returned unreadable image data."}
+            # Interactions requires JPEG output; the shared local pipeline expects PNG.
+            buffer = QBuffer()
+            if not buffer.open(QIODevice.OpenModeFlag.WriteOnly) or not image.save(buffer, "PNG"):
+                return {"success": False, "error": "Failed to convert Gemini output to PNG."}
+            data = base64.b64encode(bytes(buffer.data())).decode('ascii')
+            buffer.close()
             return {"success": True, "data": data, "model": self.model}
         except (KeyError, TypeError, AttributeError, ValueError, binascii.Error) as e:
             return {"success": False, "error": f"Invalid Gemini response: {e}"}

@@ -9,6 +9,8 @@ from unittest.mock import Mock, patch
 
 import requests
 from qgis.core import QgsApplication, QgsProcessingContext, QgsProcessingFeedback
+from qgis.PyQt.QtCore import QBuffer, QIODevice
+from qgis.PyQt.QtGui import QImage
 
 ROOT = Path(__file__).resolve().parents[1]
 app = QgsApplication([], False)
@@ -25,10 +27,17 @@ from promptmap.clients.gemini_3_pro_image import (
     MODELS, Gemini3ProImageAlgorithm, Gemini3ProImageAPIClient,
 )
 
-PNG = base64.b64encode(bytes.fromhex(
-    '89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489'
-    '0000000b49444154789c636000020000050001a5f645400000000049454e44ae426082'
-)).decode()
+def image_fixture(image_format):
+    image = QImage(8, 4, QImage.Format.Format_RGB32)
+    image.fill(0xff336699)
+    buffer = QBuffer()
+    assert buffer.open(QIODevice.OpenModeFlag.WriteOnly)
+    assert image.save(buffer, image_format)
+    return base64.b64encode(bytes(buffer.data())).decode('ascii')
+
+
+PNG = image_fixture('PNG')
+JPEG = image_fixture('JPEG')
 
 
 def completed():
@@ -36,7 +45,7 @@ def completed():
         {'type': 'thought', 'summary': [{'type': 'image', 'data': 'not-final'}]},
         {'type': 'model_output', 'content': [
             {'type': 'text', 'text': 'Done'},
-            {'type': 'image', 'mime_type': 'image/png', 'data': PNG},
+            {'type': 'image', 'mime_type': 'image/jpeg', 'data': JPEG},
         ]},
     ]}
 
@@ -49,7 +58,14 @@ class GeminiTests(unittest.TestCase):
             with self.subTest(model=model):
                 client = Gemini3ProImageAPIClient('test-key', idx)
                 result = client.process_image(PNG, 'Edit the map', '16:9', None)
-                self.assertEqual(result, {'success': True, 'data': PNG, 'model': model})
+                self.assertTrue(result['success'])
+                self.assertEqual(result['model'], model)
+                converted = base64.b64decode(result['data'])
+                self.assertTrue(converted.startswith(b'\x89PNG\r\n\x1a\n'))
+                image = QImage.fromData(converted, 'PNG')
+                self.assertEqual((image.width(), image.height()), (8, 4))
+                source = QImage.fromData(base64.b64decode(JPEG), 'JPEG')
+                self.assertEqual(image.pixel(0, 0), source.pixel(0, 0))
                 args, kwargs = post.call_args
                 self.assertEqual(args[0], 'https://generativelanguage.googleapis.com/v1beta/interactions')
                 payload = kwargs['json']
@@ -60,7 +76,7 @@ class GeminiTests(unittest.TestCase):
                 ])
                 self.assertFalse(payload['store'])
                 self.assertEqual(payload['response_format']['aspect_ratio'], '16:9')
-                self.assertEqual(payload['response_format']['mime_type'], 'image/png')
+                self.assertEqual(payload['response_format']['mime_type'], 'image/jpeg')
                 if size:
                     self.assertEqual(payload['response_format']['image_size'], size)
                 else:
@@ -75,7 +91,13 @@ class GeminiTests(unittest.TestCase):
             {}, {'status': 'failed'}, {'status': 'completed', 'steps': []},
             {'status': 'completed', 'steps': None},
             {'status': 'completed', 'steps': [{'type': 'model_output', 'content': [
+                {'type': 'image', 'mime_type': 'image/gif', 'data': PNG},
+            ]}]},
+            {'status': 'completed', 'steps': [{'type': 'model_output', 'content': [
                 {'type': 'image', 'mime_type': 'image/jpeg', 'data': PNG},
+            ]}]},
+            {'status': 'completed', 'steps': [{'type': 'model_output', 'content': [
+                {'type': 'image', 'mime_type': 'image/jpeg', 'data': base64.b64encode(b'\xff\xd8\xff').decode()},
             ]}]},
         ]
         for data in ('bad-base64', base64.b64encode(b'not a PNG').decode(), None):
@@ -88,6 +110,25 @@ class GeminiTests(unittest.TestCase):
                 self.assertFalse(Gemini3ProImageAPIClient('key').process_image(PNG, 'Edit', '1:1', None)['success'])
         post.return_value.json.side_effect = ValueError('invalid JSON')
         self.assertFalse(Gemini3ProImageAPIClient('key').process_image(PNG, 'Edit', '1:1', None)['success'])
+
+    @patch('requests.post')
+    def test_png_response_remains_supported(self, post):
+        response = completed()
+        response['steps'][1]['content'][1] = {'type': 'image', 'mime_type': 'image/png', 'data': PNG}
+        post.return_value = Mock(status_code=200, json=lambda: response)
+        result = Gemini3ProImageAPIClient('key').process_image(PNG, 'Edit', '1:1', None)
+        self.assertTrue(result['success'])
+        self.assertFalse(QImage.fromData(base64.b64decode(result['data']), 'PNG').isNull())
+
+    @patch('requests.post')
+    @patch('promptmap.clients.gemini_3_pro_image.QImage')
+    def test_conversion_failure(self, image_class, post):
+        post.return_value = Mock(status_code=200, json=completed)
+        image_class.fromData.return_value.isNull.return_value = False
+        image_class.fromData.return_value.save.return_value = False
+        result = Gemini3ProImageAPIClient('key').process_image(PNG, 'Edit', '1:1', None)
+        self.assertFalse(result['success'])
+        self.assertIn('convert', result['error'])
 
     @patch('requests.post')
     def test_http_and_network_errors(self, post):

@@ -8,7 +8,7 @@ Thanks for helping keep PromptMap sharp. A few notes before you open a PR.
 2. **PROCESS** – The algorithm subclass calls `execute_api()`, which delegates to the provider-specific API client ([`BFLAPIClient`](../clients/bfl_base.py) for FLUX models, [`Gemini3ProImageAPIClient`](../clients/gemini_3_pro_image.py) for all five Gemini models). BFL uses asynchronous polling; Gemini uses the Interactions API and returns inline data from final model-output steps.
 3. **INTEGRATE** – The result is downloaded or decoded, watermarked, georeferenced as a GeoTIFF via GDAL, and loaded as a new raster layer. A GeoPackage with model name, prompt, timestamp, and extent is saved alongside.
 
-PNG is enforced throughout so transparency and georeferencing remain predictable.
+Canvas input and local output use PNG. Gemini requests JPEG from the Interactions API and converts it to PNG locally with Qt before integration; this cannot recover JPEG compression losses or transparency.
 
 ## Development workflow
 

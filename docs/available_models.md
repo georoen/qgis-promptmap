@@ -82,11 +82,11 @@ Select a model under **Google Gemini API → Gemini Image Editing (Nano Banana) 
 
 | Model | API model ID | Output requested by PromptMap | Suggested use |
 |---|---|---|---|
-| Nano Banana Pro (default) | `gemini-3-pro-image` | 2K PNG | Complex instructions, detailed cartography and planning scenarios |
-| Nano Banana 2.1 | `gemini-nano-banana-2.1` | 2K PNG | Balanced general-purpose mapping and synthetic aerial edits |
-| Nano Banana 2 | `gemini-3.1-flash-image` | 2K PNG | Alternative balanced model for comparisons |
-| Nano Banana 2 Lite | `gemini-3.1-flash-lite-image` | 1K PNG (`1024px`) | Fast previews, simple recolouring and local edits |
-| Original Nano Banana (legacy) | `gemini-2.5-flash-image` | Native resolution, approximately 1K | Legacy comparisons |
+| Nano Banana Pro (default) | `gemini-3-pro-image` | 2K JPEG → local PNG | Complex instructions, detailed cartography and planning scenarios |
+| Nano Banana 2.1 | `gemini-nano-banana-2.1` | 2K JPEG → local PNG | Balanced general-purpose mapping and synthetic aerial edits |
+| Nano Banana 2 | `gemini-3.1-flash-image` | 2K JPEG → local PNG | Alternative balanced model for comparisons |
+| Nano Banana 2 Lite | `gemini-3.1-flash-lite-image` | 1K JPEG (`1024px`) → local PNG | Fast previews, simple recolouring and local edits |
+| Original Nano Banana (legacy) | `gemini-2.5-flash-image` | Native resolution, approximately 1K JPEG → local PNG | Legacy comparisons |
 
 These recommendations follow Google's model descriptions, not a PromptMap quality benchmark. Lite prioritizes speed and cost and is not optimized for multiple references or sequential editing. No model guarantees accurate segmentation or preservation of spatial geometry.
 
@@ -101,12 +101,14 @@ Requests use `x-goog-api-key` authentication and `Api-Revision: 2026-05-20`.
 | `model` | Selected API model ID |
 | `input` | Text instruction plus the rendered canvas as a base64 PNG |
 | `response_format.type` | `image` |
-| `response_format.mime_type` | `image/png` |
+| `response_format.mime_type` | `image/jpeg` (required by the live Pro Interactions endpoint) |
 | `response_format.aspect_ratio` | Derived from input framing |
 | `response_format.image_size` | Fixed per model as listed above; omitted for original Nano Banana |
 | `store` | `false`: disable Interactions request/response storage for later retrieval |
 
-The client reads the last image from `model_output` steps, ignores thought images, and rejects missing, malformed or non-PNG output. The selected API model ID is recorded in the output GeoPackage.
+The client reads the last image from `model_output` steps, ignores thought images, and decodes JPEG (or PNG) output with Qt. It converts the result to PNG locally before saving, watermarking and georeferencing, preserving decoded pixel dimensions and colours. Missing, malformed, unreadable or unsupported output is rejected. The selected API model ID is recorded in the output GeoPackage.
+
+**JPEG limitation:** local PNG conversion does not reverse JPEG compression or restore transparency. For exact-colour segmentation masks, validate colours and boundaries rather than assuming lossless API output. The live Pro endpoint rejects `image/png` output requests despite PNG examples in Google's documentation.
 
 **Framing:** all models accept the Square (1:1) and Widescreen (16:9) presets. Full-canvas mode only works when the resulting ratio is supported; otherwise PromptMap reports an error before sending a request. Standard supported ratios are 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9 and 21:9. Nano Banana 2.1 and 2 also accept 1:4, 4:1, 1:8 and 8:1.
 
