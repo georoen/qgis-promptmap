@@ -82,7 +82,7 @@ PROMPT: For an urban planning project, I need a photorealistic representation. P
    - **Google (Gemini models):** <https://aistudio.google.com/>
    - **OpenAI (GPT Image models):** <https://platform.openai.com/api-keys>
 
-   API keys are entered in the Processing dialog. QGIS remembers your last parameters via **Processing** → **History**, so you can re-run without re-entering the key. For persistent storage, set an environment variable as described in [docs/env_vars.md](docs/env_vars.md).
+   API keys are entered in the Processing dialog. QGIS remembers your last parameters via **Processing** → **History**, so you can re-run without re-entering the key. There is no persistent credential store; the key must be provided for each run.
 
    > Need help getting started? Pick a free onboarding session at [meet.jstaab.de](https://meet.jstaab.de).
 

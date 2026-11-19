@@ -41,7 +41,7 @@ QT_QPA_PLATFORM=offscreen python3 tests/test_flux_3.py
 
 The Gemini, OpenAI and FLUX 3 tests mock HTTP requests to check every model's payload, response parsing, validation, cancellation, and errors without spending API credits. They do not verify live service availability or image quality.
 
-The smoke test checks provider registration, map rendering, watermarking, GeoTIFF conversion and GeoPackage metadata export. It does not call paid AI APIs or test the interactive UI. See [`docs/env_vars.md`](env_vars.md) for live API setup.
+The smoke test checks provider registration, map rendering, watermarking, GeoTIFF conversion and GeoPackage metadata export. It does not call paid AI APIs or test the interactive UI.
 
 ## Filing issues / PRs
 
