@@ -2,13 +2,19 @@
 
 import base64
 import importlib.util
+import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import requests
-from qgis.core import QgsApplication, QgsProcessingContext, QgsProcessingFeedback
+from qgis.core import (
+    QgsApplication, QgsCoordinateReferenceSystem, QgsProcessingContext,
+    QgsProcessingFeedback, QgsRectangle, QgsVectorLayer,
+)
 from qgis.PyQt.QtCore import QBuffer, QIODevice
 from qgis.PyQt.QtGui import QImage
 
@@ -51,6 +57,56 @@ def completed():
 
 
 class GeminiTests(unittest.TestCase):
+    @patch('requests.post')
+    def test_api_usage_is_preserved_when_available(self, post):
+        for usage in (None, {}, {'total_input_tokens': 123, 'total_thought_tokens': 0}):
+            response = completed()
+            if usage is not None:
+                response['usage'] = usage
+            post.return_value = Mock(status_code=200, json=lambda: response)
+            result = Gemini3ProImageAPIClient('key').process_image(PNG, 'Edit', '1:1', None)
+            self.assertTrue(result['success'])
+            self.assertEqual(result['usage'], usage)
+
+    def test_usage_metadata_round_trip(self):
+        algorithm = Gemini3ProImageAlgorithm()
+        algorithm.initAlgorithm()
+        crs = QgsCoordinateReferenceSystem('EPSG:3857')
+        canvas = SimpleNamespace(
+            extent=lambda: QgsRectangle(0, 0, 100, 100),
+            mapSettings=lambda: SimpleNamespace(destinationCrs=lambda: crs),
+        )
+        usage = {
+            'total_input_tokens': 123, 'total_output_tokens': 1120,
+            'total_thought_tokens': 0, 'total_tokens': 1243,
+            'input_tokens_by_modality': [{'modality': 'image', 'tokens': 100}],
+        }
+        for reported in (usage, None, {}, 'invalid'):
+            with self.subTest(usage=reported), tempfile.TemporaryDirectory() as directory:
+                result = {'success': True, 'data': PNG, 'model': 'gemini-3-pro-image'}
+                if reported is not None:
+                    result['usage'] = reported
+                with (
+                    patch('promptmap.clients.base.iface', SimpleNamespace(mapCanvas=lambda: canvas)),
+                    patch.object(algorithm, 'execute_api', return_value=result),
+                    patch.object(algorithm, '_render_map', side_effect=lambda e, w, h, p: Path(p).write_bytes(base64.b64decode(PNG))),
+                    patch.object(algorithm, '_load_raster_layer'),
+                    patch.object(algorithm, '_load_vector_layer'),
+                ):
+                    output = algorithm.processAlgorithm(
+                        {'API_KEY': 'key', 'PROMPT': 'Edit', 'TILE_SIZE': 0, 'OUTPUT_DIR': directory},
+                        QgsProcessingContext(), QgsProcessingFeedback(),
+                    )
+                layer = QgsVectorLayer(str(Path(output['OUTPUT']).with_suffix('.gpkg')), 'metadata', 'ogr')
+                self.assertTrue(layer.isValid())
+                feature = next(layer.getFeatures())
+                self.assertEqual(feature['model'], 'gemini-3-pro-image')
+                if reported == usage:
+                    self.assertEqual(json.loads(feature['token_usage']), usage)
+                else:
+                    self.assertNotIn('token_usage', layer.fields().names())
+                del layer
+
     @patch('requests.post')
     def test_each_model_request_and_final_image(self, post):
         post.return_value = Mock(status_code=200, json=completed)

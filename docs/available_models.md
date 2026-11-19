@@ -108,6 +108,8 @@ Requests use `x-goog-api-key` authentication and `Api-Revision: 2026-05-20`.
 
 The client reads the last image from `model_output` steps, ignores thought images, and decodes JPEG (or PNG) output with Qt. It converts the result to PNG locally before saving, watermarking and georeferencing, preserving decoded pixel dimensions and colours. Missing, malformed, unreadable or unsupported output is rejected. The selected API model ID is recorded in the output GeoPackage.
 
+**Token usage:** when the API provides a non-empty `usage` object, it is saved as JSON in the GeoPackage's `token_usage` field, including reported input, output, thinking, cached and total counts and modality breakdowns. Missing counts are not inferred; zero counts are preserved. Providers or responses without usage data do not add this field. These are API-reported usage statistics, not monetary costs.
+
 **JPEG limitation:** local PNG conversion does not reverse JPEG compression or restore transparency. For exact-colour segmentation masks, validate colours and boundaries rather than assuming lossless API output. The live Pro endpoint rejects `image/png` output requests despite PNG examples in Google's documentation.
 
 **Framing:** all models accept the Square (1:1) and Widescreen (16:9) presets. Full-canvas mode only works when the resulting ratio is supported; otherwise PromptMap reports an error before sending a request. Standard supported ratios are 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9 and 21:9. Nano Banana 2.1 and 2 also accept 1:4, 4:1, 1:8 and 8:1.

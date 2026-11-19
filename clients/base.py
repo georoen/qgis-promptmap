@@ -2,6 +2,7 @@
 Base classes for FLUX/Gemini clients.
 """
 
+import json
 import os
 import time
 from os import environ
@@ -172,6 +173,10 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
             "tile_size": self.TILE_OPTIONS[tile_idx][0]
         }
         
+        usage = result.get("usage")
+        if isinstance(usage, dict) and usage:
+            metadata["token_usage"] = json.dumps(usage, sort_keys=True)
+
         try:
             gpkg_path = write_metadata_gpkg(geotiff_path, render_extent, crs, metadata)
             self._load_vector_layer(gpkg_path, crs, feedback)

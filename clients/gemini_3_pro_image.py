@@ -103,7 +103,7 @@ class Gemini3ProImageAPIClient:
                 return {"success": False, "error": "Failed to convert Gemini output to PNG."}
             data = base64.b64encode(bytes(buffer.data())).decode('ascii')
             buffer.close()
-            return {"success": True, "data": data, "model": self.model}
+            return {"success": True, "data": data, "model": self.model, "usage": result.get("usage")}
         except (KeyError, TypeError, AttributeError, ValueError, binascii.Error) as e:
             return {"success": False, "error": f"Invalid Gemini response: {e}"}
         except requests.RequestException as e:
