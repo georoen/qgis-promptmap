@@ -166,7 +166,7 @@ class BaseAIAlgorithm(QgsProcessingAlgorithm):
         # 7. Export & Load Metadata (GPKG)
         metadata = {
             "timestamp": str(int(time.time())),
-            "model": self.displayName(),
+            "model": result.get("model", self.displayName()),
             "prompt": prompt,
             "framing_preset": self.TILE_OPTIONS[tile_idx][0],
             "tile_size": self.TILE_OPTIONS[tile_idx][0]
