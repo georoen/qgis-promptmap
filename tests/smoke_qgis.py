@@ -33,7 +33,13 @@ plugin = module.classFactory(None)
 try:
     plugin.initGui()
     algorithms = list(plugin.provider.algorithms())
-    assert len(algorithms) == 4
+    assert len(algorithms) == 6
+    flux3 = next(a for a in algorithms if a.name() == 'flux_3_editing')
+    assert flux3.parameterDefinition('MODEL').options() == ['FLUX 3 Image', 'FLUX 3 Image Klein']
+    openai = next(a for a in algorithms if a.name() == 'openai_image_editing')
+    assert len(openai.parameterDefinition('MODEL').options()) == 2
+    assert openai.parameterDefinition('QUALITY').defaultValue() == 1
+    assert openai.parameterDefinition('COMPLEXITY').defaultValue() == 2
     canvas = QgsMapCanvas()
     crs = QgsCoordinateReferenceSystem('EPSG:3857')
     canvas.setDestinationCrs(crs)

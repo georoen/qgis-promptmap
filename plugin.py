@@ -10,6 +10,8 @@ from .clients.flux_1_kontext_pro import Flux1KontextProAlgorithm
 from .clients.flux_1_1_ultra_pro import Flux1_1UltraProAlgorithm
 from .clients.gemini_3_pro_image import Gemini3ProImageAlgorithm
 from .clients.flux_2_editing import Flux2EditingAlgorithm
+from .clients.flux_3_editing import Flux3EditingAlgorithm
+from .clients.openai_image import OpenAIImageAlgorithm
 
 
 class PromptMapProvider(QgsProcessingProvider):
@@ -23,6 +25,8 @@ class PromptMapProvider(QgsProcessingProvider):
         self.addAlgorithm(Flux1_1UltraProAlgorithm())
         self.addAlgorithm(Gemini3ProImageAlgorithm())
         self.addAlgorithm(Flux2EditingAlgorithm())
+        self.addAlgorithm(Flux3EditingAlgorithm())
+        self.addAlgorithm(OpenAIImageAlgorithm())
 
     def id(self):
         return 'promptmap'

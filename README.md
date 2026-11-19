@@ -1,8 +1,13 @@
 # PromptMap -- Open, Multi-Provider AI Cartography for QGIS
 
-**PromptMap** is a QGIS Processing plugin that connects your live map canvas to generative AI image APIs. Built on an open, provider-agnostic architecture, it gives you complete control over your AI workflows, data, and costs.
+**Your map. Your prompt. Your choice of AI model.**
 
-**QGIS 4 ready:** tested on QGIS 4.2.3 (Qt6). Minimum version: QGIS 3.20; QGIS 3 has not been retested for this release.
+**PromptMap 0.7.0** is an open-source, provider- and model-agnostic QGIS Processing plugin that connects your live map canvas to supported generative AI image APIs. Choose between **Black Forest Labs (FLUX)**, **Google Gemini**, and **OpenAI** models without leaving QGIS or changing your mapping workflow.
+
+- **No vendor lock-in:** choose the supported provider and model that fit your task, quality needs, and budget.
+- **Bring your own API key:** requests go directly to your chosen provider—no PromptMap account or intermediary service.
+- **Free, open-source plugin:** external API usage is billed separately by the provider.
+- **QGIS 4 ready:** tested on QGIS 4.2.3 (Qt6). Minimum version: QGIS 3.20; QGIS 3 has not been retested for this release.
 
 ![Step-by-step image processing](docs/step_by_step.png)
 
@@ -75,13 +80,14 @@ PROMPT: For an urban planning project, I need a photorealistic representation. P
    PromptMap connects to external AI APIs — you need to register and obtain an API key directly from the respective provider:
    - **Black Forest Labs (FLUX models):** <https://api.bfl.ai/>
    - **Google (Gemini models):** <https://aistudio.google.com/>
+   - **OpenAI (GPT Image models):** <https://platform.openai.com/api-keys>
 
-   API keys are entered in the Processing dialog. QGIS remembers your last parameters via **Processing** → **History**, so you can re-run without re-entering the key. For persistent storage, set an environment variable as described in [docs/env_vars.md](docs/env_vars.md).
+   API keys are entered in the Processing dialog. QGIS remembers your last parameters via **Processing** → **History**, so you can re-run without re-entering the key. There is no persistent credential store; the key must be provided for each run.
 
    > Need help getting started? Pick a free onboarding session at [meet.jstaab.de](https://meet.jstaab.de).
 
 3. **Run**  
-   Open **Processing Toolbox → PromptMap → Black Forest Labs API** (or **Google Gemini API**), pick a model, paste your API key, write a prompt, and hit **Run**.
+   Open **Processing Toolbox → PromptMap → Black Forest Labs API** (or **Google Gemini API** / **OpenAI API**), pick a model, paste your API key, write a prompt, and hit **Run**.
 
    After a few seconds the georeferenced layer loads automatically.
 
@@ -119,7 +125,7 @@ Some models support more parameters than others. The `seed` in FLUX models is pa
 ## Output 
 The plugin generates two output files:
 - Georeferenced GeoTIFF. The returned resolution does not correspond to input and is always three-channel (RGB).
-- GeoPackage of the bounding box with metadata for reproducibility and provenance in planning workflows and scientific applications.
+- GeoPackage of the bounding box with provenance metadata. If returned by the API, it also records token usage (Gemini/OpenAI) or credit cost (Black Forest Labs).
 
 
 ## Method
@@ -127,7 +133,7 @@ Low-key combination of GIS processing and REST calls.
 
 ![cap1](docs/flowchart.png)
 
-Supported providers include **Black Forest Labs** and **Google Gemini**. See [`docs/flux_models.md`](docs/flux_models.md) for the complete model list and parameters.
+Supported providers include **Black Forest Labs**, **Google Gemini**, and **OpenAI**. The **FLUX 3 Image Editing** tool offers **FLUX 3 Image** and **FLUX 3 Image Klein**. OpenAI Image Editing offers **GPT-Image-2.6 Sunburst** and **Flare**, with low/medium/high quality and complexity settings. Gemini's model dropdown offers **Nano Banana Pro, Nano Banana 2.1, Nano Banana 2, Nano Banana 2 Lite, and original Nano Banana**. Choose quality, balanced editing, fast previews, or legacy comparisons without changing your mapping workflow. See [`docs/available_models.md`](docs/available_models.md) for model IDs, requested resolutions, limitations, and parameters.
 
 | Your Priority | PromptMap | Other Solutions |
 |---------------|-----------|----------------|
