@@ -1,8 +1,13 @@
 # PromptMap -- Open, Multi-Provider AI Cartography for QGIS
 
-**PromptMap** is a QGIS Processing plugin that connects your live map canvas to generative AI image APIs. Built on an open, provider-agnostic architecture, it gives you complete control over your AI workflows, data, and costs.
+**Your map. Your prompt. Your choice of AI model.**
 
-**QGIS 4 ready:** tested on QGIS 4.2.3 (Qt6). Minimum version: QGIS 3.20; QGIS 3 has not been retested for this release.
+**PromptMap 0.7.0** is an open-source, provider- and model-agnostic QGIS Processing plugin that connects your live map canvas to supported generative AI image APIs. Choose between **Black Forest Labs (FLUX)** and **Google Gemini** models without leaving QGIS or changing your mapping workflow.
+
+- **No vendor lock-in:** choose the supported provider and model that fit your task, quality needs, and budget.
+- **Bring your own API key:** requests go directly to your chosen provider—no PromptMap account or intermediary service.
+- **Free, open-source plugin:** external API usage is billed separately by the provider.
+- **QGIS 4 ready:** tested on QGIS 4.2.3 (Qt6). Minimum version: QGIS 3.20; QGIS 3 has not been retested for this release.
 
 ![Step-by-step image processing](docs/step_by_step.png)
 
@@ -127,7 +132,7 @@ Low-key combination of GIS processing and REST calls.
 
 ![cap1](docs/flowchart.png)
 
-Supported providers include **Black Forest Labs** and **Google Gemini**. See [`docs/flux_models.md`](docs/flux_models.md) for the complete model list and parameters.
+Supported providers include **Black Forest Labs** and **Google Gemini**. Gemini's model dropdown offers **Nano Banana Pro, Nano Banana 2.1, Nano Banana 2, Nano Banana 2 Lite, and original Nano Banana**. Choose quality, balanced editing, fast previews, or legacy comparisons without changing your mapping workflow. See [`docs/available_models.md`](docs/available_models.md) for model IDs, requested resolutions, limitations, and parameters.
 
 | Your Priority | PromptMap | Other Solutions |
 |---------------|-----------|----------------|

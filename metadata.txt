@@ -3,16 +3,16 @@ name=PromptMap
 qgisMinimumVersion=3.20
 qgisMaximumVersion=4.99
 description=AI cartography for QGIS — Processing plugin to render your canvas, send a prompt, get a georeferenced map layer back. Powered by FLUX and Gemini APIs.
-version=0.6.3
+version=0.7.0
 author=Jeroen Staab
 email=email@jstaab.de
 license=GPL-2.0
 
-about=PromptMap -- Open, Multi-Provider AI Cartography for QGIS. Edit your current QGIS canvas using generative AI. Render the live map view, write a prompt, and receive a GeoTIFF back — ready to use as a new layer. Supports FLUX.1 Kontext, FLUX 1.1 Ultra, FLUX.2 Editing (Black Forest Labs) and Gemini 3 Pro Image (Google). Each result is georeferenced and documented with a GeoPackage containing model, prompt, timestamp and extent.
+about=PromptMap -- Open, Multi-Provider AI Cartography for QGIS. Edit your current QGIS canvas using generative AI. Render the live map view, write a prompt, and receive a GeoTIFF back — ready to use as a new layer. Supports FLUX.1 Kontext, FLUX 1.1 Ultra, FLUX.2 Editing (Black Forest Labs) and five Google Gemini image models (Nano Banana Pro, 2.1, 2, 2 Lite and original Nano Banana). Each result is georeferenced and documented with a GeoPackage containing model, prompt, timestamp and extent.
 
 tracker=https://github.com/georoen/qgis-promptmap/issues
 repository=https://github.com/georoen/qgis-promptmap
-changelog=v0.6.3: QGIS 4 support with Qt6-compatible imports, enums and metadata fields; smoke-tested on QGIS 4.2.3. v0.6.2: Documentation updates (README review, originality comparison). v0.6.1: Review output aspect ratio and proportions. v0.6.0: Propose cleaner method with single source of truth. v0.5.2: Update to v0.5.2 architecture. v0.5.1: version bump. v0.5.0: Renamed to PromptMap — The PromptMap Plugin; added FLUX.2 Editing and Gemini 3 Pro Image; unified base pipeline; aspect-ratio-aware tiling; watermark; GeoTIFF + GPKG metadata output per result.
+changelog=v0.7.0: Five selectable Gemini image models via the Interactions API; stable Pro model migration; QGIS 4 ready; renamed and expanded available-model reference; include watermark in release ZIP. v0.6.3: QGIS 4 support with Qt6-compatible imports, enums and metadata fields; smoke-tested on QGIS 4.2.3. v0.6.2: Documentation updates (README review, originality comparison). v0.6.1: Review output aspect ratio and proportions. v0.6.0: Propose cleaner method with single source of truth. v0.5.2: Update to v0.5.2 architecture. v0.5.1: version bump. v0.5.0: Renamed to PromptMap — The PromptMap Plugin; added FLUX.2 Editing and Gemini 3 Pro Image; unified base pipeline; aspect-ratio-aware tiling; watermark; GeoTIFF + GPKG metadata output per result.
 
 tags=raster,processing,ai,flux,gemini,promptmap,promptmapping,cartography,stylization,planning,segmentation,synthetic,aerial,edit,editing,image
 homepage=https://github.com/georoen/qgis-promptmap

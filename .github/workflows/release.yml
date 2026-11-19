@@ -21,7 +21,9 @@ jobs:
           echo "body=$(grep '^changelog=' metadata.txt | cut -d= -f2- | sed 's/^v[0-9.]*: //') - $(grep '^about=' metadata.txt | cut -d= -f2-)" >> $GITHUB_OUTPUT
 
       - name: Create ZIP
-        run: zip -r qgis-promptmap.zip . -x '.git/*' '.github/*' 'docs/*' '*.pptx'
+        run: |
+          zip -r qgis-promptmap.zip . -x '.git/*' '.github/*' 'docs/*' '*.pptx' 'tests/*' '*/__pycache__/*' '__pycache__/*'
+          zip qgis-promptmap.zip docs/watermark.png
 
       - name: Upload Release
         uses: softprops/action-gh-release@v2
